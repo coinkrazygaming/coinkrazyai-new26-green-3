@@ -207,7 +207,9 @@ const AdminGamesSports = () => {
             family: game.family || null,
             type: game.type || null,
             embed_url: game.embed_url || null,
-            enabled: game.enabled !== false
+            enabled: game.enabled !== false,
+            is_branded_popup: game.is_branded_popup === true || game.is_branded_popup === 'true',
+            branding_config: game.branding_config || {}
           });
           successCount++;
         } catch (err) {
@@ -592,18 +594,14 @@ const AdminGamesSports = () => {
                     </button>
                   </div>
                   <div className="text-xs text-muted-foreground mb-2">
-                    <p className="mb-2">Paste JSON array of games. Supports new format with slug, series, type, embed_url:</p>
+                    <p className="mb-2">Paste JSON array of games. Supports new format with slug, branding, embed_url:</p>
                     <code className="block bg-black/20 p-2 rounded text-[11px] overflow-x-auto whitespace-pre-wrap break-words max-h-24 overflow-y-auto">
 {`[{
-  "provider": "Novomatic",
-  "name": "Lord of the Ocean",
-  "slug": "LordOfTheOcean",
-  "series": "Ocean",
-  "family": null,
-  "category": "slot",
-  "type": "video slot",
-  "thumbnail": null,
-  "embed_url": "https://free-slots.games/game/LordOfTheOcean/"
+  "provider": "Pragmatic",
+  "name": "Branded Game",
+  "is_branded_popup": true,
+  "branding_config": { "primaryColor": "#ff0000", "displayName": "My Custom Slot" },
+  "embed_url": "https://..."
 }]`}
                     </code>
                   </div>

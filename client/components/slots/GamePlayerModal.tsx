@@ -56,6 +56,7 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
   });
   const [showWinPopup, setShowWinPopup] = useState(false);
   const [lastWinAmount, setLastWinAmount] = useState(0);
+  const [optimisticBalance, setOptimisticBalance] = useState<number | null>(null);
 
   // Load game config on mount
   useEffect(() => {
@@ -132,6 +133,10 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
     try {
       setIsSpinning(true);
 
+      // Optimistically deduct the bet for immediate site-wide feedback feel
+      const currentSc = wallet?.sweepsCoins || 0;
+      setOptimisticBalance(Math.max(0, currentSc - currentBet));
+
       // Process spin via API - win calculation is now server-side for security
       const response = await apiCall<any>('/games/spin', {
         method: 'POST',
@@ -143,20 +148,20 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
 
       if (response.success && response.data) {
         const { win_amount } = response.data;
+        setOptimisticBalance(null); // Clear optimistic once we get real result
         await refreshWallet();
 
         if (win_amount > 0) {
           toast.success(`🎉 You won ${win_amount.toFixed(2)} SC!`);
           setLastWinAmount(win_amount);
           setShowWinPopup(true);
-        } else {
-          // Optional: smaller notification for losses to avoid spam
-          // toast.info(`Result: ${win_amount.toFixed(2)} SC`);
         }
       } else {
+        setOptimisticBalance(null);
         toast.error(response.error || 'Spin failed');
       }
     } catch (error: any) {
+      setOptimisticBalance(null);
       toast.error(error.message || 'Failed to process spin');
       console.error('Spin error:', error);
     } finally {
@@ -164,7 +169,7 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
     }
   };
 
-  const scBalance = wallet?.sweepsCoins || 0;
+  const scBalance = optimisticBalance !== null ? optimisticBalance : (wallet?.sweepsCoins || 0);
   const gcBalance = wallet?.goldCoins || 0;
 
   const branding = game.branding_config || {};

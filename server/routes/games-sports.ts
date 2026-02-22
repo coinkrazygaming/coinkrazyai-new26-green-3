@@ -76,7 +76,7 @@ export const createGame: RequestHandler = async (req, res) => {
       try {
         await query(
           `INSERT INTO game_compliance (game_id, is_external, is_sweepstake, is_social_casino, currency, max_win_amount, min_bet, max_bet)
-           VALUES ($1, true, true, true, 'SC', 20.00, 0.01, 5.00)
+           VALUES ($1, true, true, true, 'SC', 10.00, 0.01, 5.00)
            ON CONFLICT (game_id) DO UPDATE SET
               is_external = true,
               is_sweepstake = true,
@@ -726,7 +726,7 @@ export const buildGameFromTemplate: RequestHandler = async (req, res) => {
       try {
         await query(
           `INSERT INTO game_compliance (game_id, is_external, is_sweepstake, is_social_casino, currency, max_win_amount, min_bet, max_bet)
-           VALUES ($1, true, true, true, 'SC', 20.00, 0.01, 5.00)
+           VALUES ($1, true, true, true, 'SC', 10.00, 0.01, 5.00)
            ON CONFLICT (game_id) DO UPDATE SET
               is_external = true,
               is_sweepstake = true,

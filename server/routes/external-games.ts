@@ -1,6 +1,7 @@
 import { RequestHandler } from 'express';
 import * as dbQueries from '../db/queries';
 import { query } from '../db/connection';
+import { emitWalletUpdate } from '../socket';
 
 // ===== TYPES =====
 interface SpinRequest {
@@ -26,6 +27,7 @@ export const handleGetGameConfig: RequestHandler = async (req, res) => {
     const result = await query(
       `SELECT
         g.id, g.name, g.description, g.image_url, g.embed_url, g.launch_url,
+        g.is_branded_popup, g.branding_config,
         gc.is_external, gc.is_sweepstake, gc.is_social_casino,
         gc.max_win_amount, gc.currency, gc.min_bet, gc.max_bet,
         gc.bet_increments
@@ -42,9 +44,16 @@ export const handleGetGameConfig: RequestHandler = async (req, res) => {
       });
     }
 
+    const row = result.rows[0];
+
     res.json({
       success: true,
-      data: result.rows[0]
+      data: {
+        ...row,
+        branding_config: typeof row.branding_config === 'string'
+          ? JSON.parse(row.branding_config)
+          : row.branding_config || {}
+      }
     });
   } catch (error: any) {
     console.error('[External Games] Error fetching game config:', error);
@@ -155,6 +164,19 @@ export const handleProcessSpin: RequestHandler = async (req, res) => {
 
     const spin = spinResult.rows[0];
 
+    // Emit real-time wallet update via socket
+    try {
+      emitWalletUpdate(req.user.playerId, {
+        userId: req.user.playerId,
+        sweepsCoins: parseFloat(newBalance.toFixed(2)),
+        // Gold coins aren't updated in this spin logic, but we can pass existing or undefined
+        source: 'spin',
+        game: gameConfig.name
+      });
+    } catch (socketErr) {
+      console.warn('[Spin] Failed to emit socket update:', socketErr);
+    }
+
     console.log(`[Spin] Player ${req.user.playerId} played ${gameConfig.name}: bet ${bet_amount} SC, won ${actualWin} SC, net ${netResult} SC, new balance ${newBalance.toFixed(2)} SC`);
 
     res.json({
@@ -255,6 +277,7 @@ export const handleGetExternalGames: RequestHandler = async (req, res) => {
     const result = await query(
       `SELECT
         g.id, g.name, g.description, g.image_url, g.embed_url, g.launch_url, g.slug,
+        g.is_branded_popup, g.branding_config,
         gc.is_external, gc.is_sweepstake, gc.max_win_amount,
         gc.min_bet, gc.max_bet, gc.currency
       FROM games g
@@ -273,9 +296,13 @@ export const handleGetExternalGames: RequestHandler = async (req, res) => {
         embed_url: row.embed_url,
         launch_url: row.launch_url,
         slug: row.slug,
+        is_branded_popup: row.is_branded_popup,
+        branding_config: typeof row.branding_config === 'string'
+          ? JSON.parse(row.branding_config)
+          : row.branding_config || {},
         is_external: row.is_external,
         is_sweepstake: row.is_sweepstake,
-        max_win_amount: parseFloat(row.max_win_amount || '20.00'),
+        max_win_amount: parseFloat(row.max_win_amount || '10.00'),
         min_bet: parseFloat(row.min_bet || '0.01'),
         max_bet: parseFloat(row.max_bet || '5.00'),
         currency: row.currency || 'SC'
