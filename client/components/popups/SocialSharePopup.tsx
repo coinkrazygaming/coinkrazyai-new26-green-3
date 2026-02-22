@@ -11,6 +11,7 @@ interface SocialSharePopupProps {
   winAmount: number;
   gameName: string;
   gameId?: number;
+  primaryColor?: string;
   onClose: () => void;
   onShare?: (platform: string, message: string) => Promise<void>;
 }
@@ -20,11 +21,14 @@ export const SocialSharePopup: React.FC<SocialSharePopupProps> = ({
   winAmount,
   gameName,
   gameId,
+  primaryColor,
   onClose,
   onShare,
 }) => {
   const [copied, setCopied] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+
+  const brandPrimary = primaryColor || '#39FF14';
 
   const shareMessage = `🎉 I just won ${winAmount} SC playing ${gameName} on CoinKrazy Social Casino! 🎰 Join me and win big! 💰 https://coinkrazy.io/?ref=social`;
 
@@ -88,12 +92,18 @@ export const SocialSharePopup: React.FC<SocialSharePopupProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md border-4 border-primary/30 bg-gradient-to-br from-slate-900 to-slate-950 text-white shadow-2xl">
+      <DialogContent
+        className="sm:max-w-md border-4 bg-gradient-to-br from-slate-900 to-slate-950 text-white shadow-2xl"
+        style={{ borderColor: `${brandPrimary}44` }}
+      >
         <DialogHeader className="text-center">
           <div className="flex justify-center mb-4">
             <div className="relative">
-              <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center border-2 border-primary/50 animate-pulse">
-                <Trophy className="w-10 h-10 text-primary" />
+              <div
+                className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center border-2 animate-pulse"
+                style={{ borderColor: `${brandPrimary}88`, backgroundColor: `${brandPrimary}22` }}
+              >
+                <Trophy className="w-10 h-10" style={{ color: brandPrimary }} />
               </div>
               <Sparkles className="w-6 h-6 text-yellow-400 absolute -top-2 -right-2 animate-bounce" />
             </div>
@@ -102,7 +112,7 @@ export const SocialSharePopup: React.FC<SocialSharePopupProps> = ({
             SHARE THE GLORY!
           </DialogTitle>
           <DialogDescription className="text-slate-400 font-bold uppercase text-xs tracking-widest mt-2">
-            Show off your <span className="text-primary">{winAmount} SC</span> win at {gameName}!
+            Show off your <span style={{ color: brandPrimary }}>{winAmount} SC</span> win at {gameName}!
           </DialogDescription>
         </DialogHeader>
 
@@ -159,7 +169,8 @@ export const SocialSharePopup: React.FC<SocialSharePopupProps> = ({
               Maybe Later
             </Button>
             <Button
-              className="flex-1 bg-primary hover:bg-primary/90 text-white font-black italic uppercase text-xs rounded-xl shadow-xl shadow-primary/20 h-12"
+              className="flex-1 text-white font-black italic uppercase text-xs rounded-xl shadow-xl h-12"
+              style={{ backgroundColor: brandPrimary, boxShadow: `0 10px 20px -5px ${brandPrimary}44` }}
               onClick={onClose}
             >
               Continue Winning

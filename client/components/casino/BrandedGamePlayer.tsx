@@ -20,6 +20,7 @@ export const BrandedGamePlayer: React.FC<BrandedGamePlayerProps> = ({ game, onCl
   const [showWinAnimation, setShowWinAnimation] = useState(false);
   const [winAmount, setWinAmount] = useState(0);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [optimisticBalance, setOptimisticBalance] = useState<number | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const branding = typeof game.branding_config === 'string' 
@@ -79,6 +80,9 @@ export const BrandedGamePlayer: React.FC<BrandedGamePlayerProps> = ({ game, onCl
     }
 
     setIsSpinning(true);
+    const currentBalance = Number(user?.sc_balance || 0);
+    setOptimisticBalance(Math.max(0, currentBalance - betAmount));
+
     try {
       // Process spin on backend
       const response = await apiCall<any>('/casino/slots/spin', {
@@ -90,12 +94,16 @@ export const BrandedGamePlayer: React.FC<BrandedGamePlayerProps> = ({ game, onCl
       });
 
       if (response.success) {
+        setOptimisticBalance(null);
         // Backend already deducted bet and recorded spin
         // WebSocket will update balance, but we can also trigger local refresh
         await refreshProfile();
         sendBalanceToIframe();
+      } else {
+        setOptimisticBalance(null);
       }
     } catch (err: any) {
+      setOptimisticBalance(null);
       console.error('[BrandedPlayer] Spin failed:', err);
       toast.error(err.message || 'Spin failed');
     } finally {
@@ -104,12 +112,18 @@ export const BrandedGamePlayer: React.FC<BrandedGamePlayerProps> = ({ game, onCl
   };
 
   const handleSpinResult = async (data: any) => {
-    const { winnings, outcome } = data;
-    
+    let { winnings, outcome } = data;
+
+    // Enforce 10 SC win cap (Defense in Depth)
+    if (winnings > 10) {
+      console.warn(`[BrandedPlayer] Winnings cap applied: ${winnings} -> 10`);
+      winnings = 10;
+    }
+
     if (winnings > 0) {
       setWinAmount(winnings);
       setShowWinAnimation(true);
-      
+
       // Update balance on backend for winnings
       try {
         const response = await apiCall<any>('/casino/slots/spin', {
@@ -121,7 +135,7 @@ export const BrandedGamePlayer: React.FC<BrandedGamePlayerProps> = ({ game, onCl
             outcome: outcome
           })
         });
-        
+
         if (response.success) {
           await refreshProfile();
           sendBalanceToIframe();
@@ -142,12 +156,16 @@ export const BrandedGamePlayer: React.FC<BrandedGamePlayerProps> = ({ game, onCl
     setError('Failed to load game content. Please try again.');
   };
 
+  const currentScBalance = optimisticBalance !== null ? optimisticBalance : (user?.sc_balance || 0);
+
   // Build final embed URL with params
   const embedUrl = new URL(game.embed_url || '');
-  embedUrl.searchParams.set('balance', String(user?.sc_balance || 0));
+  embedUrl.searchParams.set('balance', String(currentScBalance));
+  embedUrl.searchParams.set('sc_balance', String(currentScBalance));
   embedUrl.searchParams.set('username', user?.username || 'Player');
   embedUrl.searchParams.set('currency', 'SC');
   embedUrl.searchParams.set('branded', 'true');
+  embedUrl.searchParams.set('bet', String(betAmount));
 
   return (
     <div 
@@ -190,7 +208,7 @@ export const BrandedGamePlayer: React.FC<BrandedGamePlayerProps> = ({ game, onCl
           >
             <Coins className="w-4 h-4 text-blue-400" style={{ color: accentColor }} />
             <span className="text-sm font-black text-white">
-              {Number(user?.sc_balance || 0).toFixed(2)} <span className="text-[10px] opacity-70">SC</span>
+              {Number(currentScBalance).toFixed(2)} <span className="text-[10px] opacity-70">SC</span>
             </span>
           </div>
 

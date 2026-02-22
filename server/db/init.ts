@@ -173,7 +173,7 @@ export const initializeDatabase = async () => {
       await query(`ALTER TABLE game_compliance ADD COLUMN IF NOT EXISTS is_sweepstake BOOLEAN DEFAULT TRUE`);
       await query(`ALTER TABLE game_compliance ADD COLUMN IF NOT EXISTS is_social_casino BOOLEAN DEFAULT TRUE`);
       await query(`ALTER TABLE game_compliance ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT 'SC'`);
-      await query(`ALTER TABLE game_compliance ADD COLUMN IF NOT EXISTS max_win_amount DECIMAL(15, 2) DEFAULT 20.00`);
+      await query(`ALTER TABLE game_compliance ADD COLUMN IF NOT EXISTS max_win_amount DECIMAL(15, 2) DEFAULT 10.00`);
       await query(`ALTER TABLE game_compliance ADD COLUMN IF NOT EXISTS min_bet DECIMAL(15, 2) DEFAULT 0.01`);
       await query(`ALTER TABLE game_compliance ADD COLUMN IF NOT EXISTS max_bet DECIMAL(15, 2) DEFAULT 5.00`);
 
@@ -185,6 +185,14 @@ export const initializeDatabase = async () => {
       }
 
       console.log('[DB] Verified game_compliance table schema for crawler');
+
+      // Enforce 10 SC max win for all games (User request: Social Casino compliance)
+      await query(`UPDATE game_compliance SET max_win_amount = 10.00 WHERE max_win_amount > 10.00`);
+      await query(`INSERT INTO game_compliance (game_id, max_win_amount, is_external, is_sweepstake, is_social_casino, currency)
+                   SELECT id, 10.00, true, true, true, 'SC' FROM games
+                   WHERE id NOT IN (SELECT game_id FROM game_compliance)
+                   ON CONFLICT DO NOTHING`);
+      console.log('[DB] Enforced 10 SC max win compliance for all games');
     } catch (err: any) {
       console.log('[DB] game_compliance schema update:', err.message?.substring(0, 100));
     }

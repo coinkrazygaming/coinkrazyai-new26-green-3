@@ -332,7 +332,10 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
                         variant="ghost"
                         className="h-8 w-8 text-white"
                         disabled={currentBet <= gameConfig.min_bet || isSpinning}
-                        onClick={() => setCurrentBet(prev => Math.max(gameConfig.min_bet, prev - 0.10))}
+                        onClick={() => {
+                          const decrement = currentBet <= 0.10 ? 0.01 : 0.10;
+                          setCurrentBet(prev => Math.max(gameConfig.min_bet, Math.round((prev - decrement) * 100) / 100));
+                        }}
                       >
                         -
                       </Button>
@@ -344,7 +347,10 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
                         variant="ghost"
                         className="h-8 w-8 text-white"
                         disabled={currentBet >= gameConfig.max_bet || isSpinning}
-                        onClick={() => setCurrentBet(prev => Math.min(gameConfig.max_bet, prev + 0.10))}
+                        onClick={() => {
+                          const increment = currentBet < 0.10 ? 0.01 : 0.10;
+                          setCurrentBet(prev => Math.min(gameConfig.max_bet, Math.round((prev + increment) * 100) / 100));
+                        }}
                       >
                         +
                       </Button>
@@ -409,6 +415,7 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
             winAmount={lastWinAmount}
             gameName={game.name}
             gameId={game.id}
+            primaryColor={primaryColor}
             onClose={() => setShowWinPopup(false)}
             onShare={async (platform, message) => {
               try {
