@@ -80,7 +80,6 @@ export const BrandedGamePlayer: React.FC<BrandedGamePlayerProps> = ({ game, onCl
     }
 
     setIsSpinning(true);
-    const currentBalance = Number(user?.sc_balance || 0);
     setOptimisticBalance(Math.max(0, currentBalance - betAmount));
 
     try {
