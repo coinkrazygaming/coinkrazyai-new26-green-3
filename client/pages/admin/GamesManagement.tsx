@@ -10,6 +10,7 @@ import { Search, Plus, Edit, Trash2, Layout, Image, Link as LinkIcon, Save, X, R
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface GameForm {
   id?: number;
