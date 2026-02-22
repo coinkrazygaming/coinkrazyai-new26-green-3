@@ -14,6 +14,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Store from "./pages/Store";
 import Admin from "./pages/Admin";
+import GamesManagement from "./pages/admin/GamesManagement";
 import Slots from "./pages/Slots";
 import Poker from "./pages/Poker";
 import Bingo from "./pages/Bingo";
@@ -240,6 +241,14 @@ const AppRoutes = () => (
       element={
         <Layout>
           <Admin />
+        </Layout>
+      }
+    />
+    <Route
+      path="/admin/games"
+      element={
+        <Layout>
+          <GamesManagement />
         </Layout>
       }
     />

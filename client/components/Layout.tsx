@@ -308,12 +308,20 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
             {/* Admin Toggle */}
             {isAdmin && (
-              <Button asChild className="w-full h-12 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-black italic uppercase rounded-xl shadow-xl shadow-red-500/20">
-                <Link to="/admin">
-                  <LayoutDashboard className="w-5 h-5 mr-2" />
-                  ADMIN PANEL
-                </Link>
-              </Button>
+              <div className="space-y-2">
+                <Button asChild className="w-full h-12 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-black italic uppercase rounded-xl shadow-xl shadow-red-500/20">
+                  <Link to="/admin">
+                    <LayoutDashboard className="w-5 h-5 mr-2" />
+                    ADMIN PANEL
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" className="w-full h-10 border-red-500/30 text-red-500 hover:bg-red-500/10 font-black italic uppercase rounded-xl">
+                  <Link to="/admin/games">
+                    <Gamepad2 className="w-4 h-4 mr-2" />
+                    MANAGE GAMES
+                  </Link>
+                </Button>
+              </div>
             )}
 
             {/* Navigation Groups */}

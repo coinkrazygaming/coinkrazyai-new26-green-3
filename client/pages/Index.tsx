@@ -8,7 +8,9 @@ import { Gamepad2, Coins, TrendingUp, Users, Zap, MessageSquare, Loader2, Sparkl
 import { games as gamesApi } from '@/lib/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { GameLauncher } from '@/components/casino/GameLauncher';
 import { GamePlayerModal } from '@/components/slots/GamePlayerModal';
+import { BrandedGameModal } from '@/components/casino/BrandedGameModal';
 
 interface Game {
   id: number;
@@ -30,6 +32,7 @@ interface Game {
 const Index = () => {
   const [featuredGames, setFeaturedGames] = useState<Game[]>([]);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [isBrandedModalOpen, setIsBrandedModalOpen] = useState(false);
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
   const [isLoadingGames, setIsLoadingGames] = useState(false);
   const [platformStats, setPlatformStats] = useState({
@@ -278,58 +281,66 @@ const Index = () => {
             </div>
           </div>
         ) : games.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {games.map((game) => (
-              <Card
-                key={game.id}
-                className="group overflow-hidden border-border/50 hover:border-primary/50 transition-all hover:shadow-[0_0_20px_rgba(57,255,20,0.1)]"
-              >
-                <CardHeader className="p-0">
-                  <div className="h-40 flex items-center justify-center bg-gradient-to-br from-blue-600 to-blue-400 transition-transform group-hover:scale-105 duration-500 overflow-hidden">
-                    <img
-                      src={game.image_url || game.thumbnail}
-                      alt={game.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.src =
-                          'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="300"%3E%3Crect fill="%231e40af" width="300" height="300"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14" fill="%239CA3AF"%3EGame Image%3C/text%3E%3C/svg%3E';
-                      }}
-                    />
-                  </div>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start mb-2">
-                    <CardTitle className="text-xl font-bold line-clamp-1">{game.name}</CardTitle>
-                    <Badge className="bg-primary/20 text-primary hover:bg-primary/20 border-none text-xs">
-                      {game.badge}
-                    </Badge>
-                  </div>
-                  <CardDescription className="text-muted-foreground text-sm">{game.provider}</CardDescription>
-                </CardContent>
-                <CardFooter className="p-6 pt-0 flex justify-between items-center">
-                  <div className="flex items-center text-xs text-muted-foreground font-medium">
-                    <Users className="w-3 h-3 mr-1" />
-                    {game.players} online
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="font-bold group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
-                    onClick={() => {
-                      if (game.launch_url || game.embed_url) {
-                        setSelectedGame(game);
-                        setIsPlayerOpen(true);
-                      } else {
-                        toast.info('Game embed URL not available');
-                      }
-                    }}
+          <GameLauncher>
+            {(launchGame) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {games.map((game) => (
+                  <Card
+                    key={game.id}
+                    className="group overflow-hidden border-border/50 hover:border-primary/50 transition-all hover:shadow-[0_0_20px_rgba(57,255,20,0.1)]"
                   >
-                    PLAY
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+                    <CardHeader className="p-0">
+                      <div className="h-40 flex items-center justify-center bg-gradient-to-br from-blue-600 to-blue-400 transition-transform group-hover:scale-105 duration-500 overflow-hidden">
+                        <img
+                          src={game.image_url || game.thumbnail}
+                          alt={game.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.src =
+                              'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="300"%3E%3Crect fill="%231e40af" width="300" height="300"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14" fill="%239CA3AF"%3EGame Image%3C/text%3E%3C/svg%3E';
+                          }}
+                        />
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <div className="flex justify-between items-start mb-2">
+                        <CardTitle className="text-xl font-bold line-clamp-1">{game.name}</CardTitle>
+                        <Badge className="bg-primary/20 text-primary hover:bg-primary/20 border-none text-xs">
+                          {game.badge}
+                        </Badge>
+                      </div>
+                      <CardDescription className="text-muted-foreground text-sm">{game.provider}</CardDescription>
+                    </CardContent>
+                    <CardFooter className="p-6 pt-0 flex justify-between items-center">
+                      <div className="flex items-center text-xs text-muted-foreground font-medium">
+                        <Users className="w-3 h-3 mr-1" />
+                        {game.players} online
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="font-bold group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                        onClick={() => {
+                          if (game.enabled === false) return;
+
+                          if (game.is_branded_popup !== false && (game.embed_url || game.launch_url)) {
+                            launchGame(game);
+                          } else if (game.launch_url || game.embed_url) {
+                            setSelectedGame(game);
+                            setIsPlayerOpen(true);
+                          } else {
+                            toast.info('Game embed URL not available');
+                          }
+                        }}
+                      >
+                        PLAY
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </GameLauncher>
         ) : (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-20">

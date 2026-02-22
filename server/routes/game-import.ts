@@ -265,10 +265,10 @@ export const handleImportGames: RequestHandler = async (req, res) => {
 
         // Insert new game
         const result = await query(
-          `INSERT INTO games (name, provider, category, image_url, embed_url, launch_url, rtp, enabled, slug, created_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+          `INSERT INTO games (name, provider, category, image_url, embed_url, launch_url, rtp, enabled, slug, is_branded_popup, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, NOW())
            RETURNING id`,
-          [game.title, 'External', 'Slots', game.image, game.game_url, game.game_url, game.rtp, game.enabled, slug]
+          [game.title, game.provider, 'Slots', game.image, game.game_url, game.game_url, game.rtp, game.enabled, slug]
         );
 
         const gameId = result.rows[0].id;

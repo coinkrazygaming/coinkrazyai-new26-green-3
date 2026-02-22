@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Play, ExternalLink, Info } from 'lucide-react';
 import { GamePlayerModal } from './GamePlayerModal';
-import { BrandedGamePlayer } from '../casino/BrandedGamePlayer';
+import { BrandedGameModal } from '../casino/BrandedGameModal';
 
 interface ImportedGame {
   id: number;
@@ -190,8 +190,9 @@ export const ImportedGameCard = ({
 
       {/* Game Player Modal */}
       {game.is_branded_popup && isPlayerOpen ? (
-        <BrandedGamePlayer
-          game={game}
+        <BrandedGameModal
+          isOpen={isPlayerOpen}
+          game={game as any}
           onClose={() => setIsPlayerOpen(false)}
         />
       ) : (

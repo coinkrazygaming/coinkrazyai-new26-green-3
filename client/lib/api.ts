@@ -256,10 +256,10 @@ export const games = {
 
 // ===== SLOTS =====
 export const slots = {
-  spin: async (gameId: number, betAmount: number) => {
+  spin: async (gameId: string | number, betAmount: number, winAmount: number = 0, symbols: string = "") => {
     return apiCall<any>('/slots/spin', {
       method: 'POST',
-      body: JSON.stringify({ game_id: gameId, bet_amount: betAmount }),
+      body: JSON.stringify({ gameId, betAmount, winAmount, symbols }),
     });
   },
 
