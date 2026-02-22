@@ -98,7 +98,8 @@ export const handleProcessSpin: RequestHandler = async (req, res) => {
     }
 
     const gameConfig = gameResult.rows[0];
-    const maxWin = gameConfig.max_win_amount || 20.00;
+    // User requested max win limit of 10 SC
+    const maxWin = Math.min(gameConfig.max_win_amount || 10.00, 10.00);
     const minBet = gameConfig.min_bet || 0.01;
     const maxBet = gameConfig.max_bet || 5.00;
 
@@ -118,20 +119,19 @@ export const handleProcessSpin: RequestHandler = async (req, res) => {
       });
     }
 
-    // Calculate actual win amount
-    // In a real system, this would be determined by the external provider.
-    // Since we are using demo embeds, we simulate the server-side decision here.
-    // 35% win rate, win between 0.5x and 10x bet, capped at game max win.
+    // 35% win rate, win between 0.2x and 10x bet, capped at 10 SC.
     const winChance = Math.random();
     let actualWin = 0;
 
     if (winChance > 0.65) {
-      const multiplier = 0.5 + Math.random() * 9.5;
+      // For social casino, we want more frequent smaller wins
+      const multiplier = 0.2 + Math.random() * 5.0;
       actualWin = Math.round(bet_amount * multiplier * 100) / 100;
     }
 
-    if (actualWin > maxWin) {
-      actualWin = maxWin;
+    // Strictly enforce the 10 SC limit requested by the user
+    if (actualWin > 10.00) {
+      actualWin = 10.00;
     }
 
     // Calculate net result
