@@ -7,6 +7,7 @@ import { setupSocketIO } from "./server/socket";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
+    base: '/coinkrazyai-new26-green-2/',   // for GitHub Pages subfolder
     host: "::",
     port: 8080,
     allowedHosts: true,
