@@ -166,7 +166,7 @@ export const handleProcessSpin: RequestHandler = async (req, res) => {
 
     // Emit real-time wallet update via socket
     try {
-      emitWalletUpdate(req.user.playerId, {
+      emitWalletUpdate(req.user.playerId.toString(), {
         userId: req.user.playerId,
         sweepsCoins: parseFloat(newBalance.toFixed(2)),
         // Gold coins aren't updated in this spin logic, but we can pass existing or undefined
