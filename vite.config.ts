@@ -4,16 +4,16 @@ import path from "path";
 import { createServer } from "./server";
 import { setupSocketIO } from "./server/socket";
 
-export default defineConfig({
-  base: '/coinkrazyai-new26-green-2/',  // ← repo name in path
-  // ... rest of config
-})
+// https://vitejs.dev/config/
+export default defineConfig(({ mode }) => ({
+  server: {
+    base: '/coinkrazyai-new26-green-2/',   // for GitHub Pages subfolder
     host: "::",
     port: 8080,
     allowedHosts: true,
     fs: {
       allow: [".", "./client", "./shared"],
-      deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "server/**"],
+      
     },
   },
   build: {
