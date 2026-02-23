@@ -27,6 +27,8 @@ interface Game {
   embed_url?: string;
   launch_url?: string;
   enabled?: boolean;
+  is_branded_popup?: boolean;
+  branding_config?: any;
 }
 
 const Index = () => {

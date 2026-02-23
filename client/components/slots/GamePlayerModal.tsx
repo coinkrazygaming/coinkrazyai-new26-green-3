@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Volume2, VolumeX, RotateCw, Maximize2, Minimize2 } from 'lucide-react';
+import { X, Volume2, VolumeX, RotateCw, Maximize2, Minimize2, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';

@@ -22,7 +22,8 @@ interface BrandedGameModalProps {
 }
 
 export const BrandedGameModal: React.FC<BrandedGameModalProps> = ({ isOpen, onClose, game }) => {
-  const { sweepsCoins, refreshWallet } = useWallet();
+  const { wallet, refreshWallet } = useWallet();
+  const { sweepsCoins } = wallet;
   const { user } = useAuth();
   const [betAmount, setBetAmount] = useState(0.20);
   const [isSpinning, setIsSpinning] = useState(false);
