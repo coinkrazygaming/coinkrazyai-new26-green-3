@@ -29,8 +29,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build (client SPA)
-        run: pnpm run build:client     # ← matches your Netlify setup
+      - name: Build client SPA
+        run: pnpm run build:client     # matches your Netlify setup exactly
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -38,7 +38,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: './dist/spa'           # ← your actual output folder
+          path: './dist/spa'           # your actual static output folder
 
   deploy:
     needs: build
