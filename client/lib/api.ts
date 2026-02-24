@@ -254,6 +254,27 @@ export const games = {
   },
 };
 
+// ===== COINKRAZY-THUNDER GAME =====
+export const coinkrazyThunder = {
+  spin: async (betAmount: number, playerId: number) => {
+    return apiCall<any>('/coinkrazy-thunder/spin', {
+      method: 'POST',
+      body: JSON.stringify({ betAmount, playerId }),
+    });
+  },
+
+  getStats: async (playerId: number) => {
+    return apiCall<any>(`/coinkrazy-thunder/stats?playerId=${playerId}`);
+  },
+
+  updateBalance: async (newBalance: number) => {
+    return apiCall<any>('/wallet/update', {
+      method: 'POST',
+      body: JSON.stringify({ gc_amount: 0, sc_amount: newBalance }),
+    });
+  },
+};
+
 // ===== SLOTS =====
 export const slots = {
   spin: async (gameId: string | number, betAmount: number, winAmount: number = 0, symbols: string = "") => {

@@ -410,6 +410,7 @@ import {
 
 import { getChallenges, claimChallengeReward } from "./routes/challenges";
 import { getPlatformStats, getRecentWinners } from "./routes/platform";
+import { handleCoinKrazyThunderSpin, handleGetThunderStats } from "./routes/coinkrazy-thunder";
 import {
   listPlayerTickets,
   createPlayerTicket,
@@ -545,6 +546,10 @@ export function createServer() {
   app.get("/api/games/history", verifyPlayer, handleGetSpinHistory);
   app.get("/api/admin/v2/games/configs", verifyAdmin, handleGetAllGameConfigs);
   app.put("/api/admin/v2/games/:gameId/max-win", verifyAdmin, handleUpdateGameMaxWin);
+
+  // ===== COINKRAZY-THUNDER GAME ROUTES =====
+  app.post("/api/coinkrazy-thunder/spin", verifyPlayer, handleCoinKrazyThunderSpin);
+  app.get("/api/coinkrazy-thunder/stats", verifyPlayer, handleGetThunderStats);
 
   // ===== ADMIN ROUTES =====
   app.post("/api/admin/login", handleAdminLogin);

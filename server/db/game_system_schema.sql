@@ -119,7 +119,6 @@ CREATE TABLE IF NOT EXISTS game_analytics (
 );
 
 -- Create indexes for better query performance
-CREATE INDEX IF NOT EXISTS idx_games_template_id ON games(game_config->>'template_id');
 CREATE INDEX IF NOT EXISTS idx_game_assets_game_id ON game_assets(game_id);
 CREATE INDEX IF NOT EXISTS idx_game_mechanics_game_id ON game_mechanics(game_id);
 CREATE INDEX IF NOT EXISTS idx_game_results_player_id ON game_results(player_id);

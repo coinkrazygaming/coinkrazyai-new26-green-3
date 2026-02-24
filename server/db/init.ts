@@ -198,13 +198,6 @@ export const initializeDatabase = async () => {
       await query(`ALTER TABLE game_compliance ADD COLUMN IF NOT EXISTS min_bet DECIMAL(15, 2) DEFAULT 0.01`);
       await query(`ALTER TABLE game_compliance ADD COLUMN IF NOT EXISTS max_bet DECIMAL(15, 2) DEFAULT 5.00`);
 
-      // Add UNIQUE constraint to game_id if not present
-      try {
-        await query(`ALTER TABLE game_compliance ADD CONSTRAINT game_compliance_game_id_key UNIQUE (game_id)`);
-      } catch (uniqueErr: any) {
-        // Ignore if constraint already exists
-      }
-
       console.log('[DB] Verified game_compliance table schema for crawler');
 
       // Enforce 10 SC max win for all games (User request: Social Casino compliance)
@@ -218,12 +211,6 @@ export const initializeDatabase = async () => {
       console.log('[DB] game_compliance schema update:', err.message?.substring(0, 100));
     }
 
-    // Ensure game_config has UNIQUE constraint
-    try {
-      await query(`ALTER TABLE game_config ADD CONSTRAINT game_config_game_id_config_key_key UNIQUE (game_id, config_key)`);
-    } catch (uniqueErr: any) {
-      // Ignore if constraint already exists
-    }
 
     // Add bonus_sc column to store_packs table if it doesn't exist
     try {
@@ -676,6 +663,50 @@ const seedDatabase = async () => {
         );
       }
       console.log('[DB] Starter games seeded');
+    }
+
+    // Always enable starter games
+    try {
+      await query(`UPDATE games SET enabled = TRUE WHERE provider = 'External'`);
+    } catch (err) {
+      // Games might not exist yet, that's ok
+    }
+
+    // Ensure CoinKrazy-Thunder game exists
+    try {
+      // Check if it already exists
+      const existing = await query(
+        `SELECT id FROM games WHERE name = 'CoinKrazy-Thunder'`,
+        []
+      );
+
+      if (!existing.rows.length) {
+        // Only insert if it doesn't exist
+        await query(
+          `INSERT INTO games (name, slug, category, type, provider, rtp, volatility, description, image_url, thumbnail, embed_url, launch_url, enabled, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+          [
+            'CoinKrazy-Thunder',
+            'coinkrazy-thunder',
+            'Slots',
+            'slots',
+            'CoinKrazy Studios',
+            96.5,
+            'High',
+            'Experience the power of the Thunder God in this electrifying 5x3 slot game with Hold & Win bonuses, Collect symbols, and massive jackpots up to 1000x! ⚡',
+            'https://images.unsplash.com/photo-1511379938547-c1f69b13d835?w=400&h=300&fit=crop',
+            'https://images.unsplash.com/photo-1511379938547-c1f69b13d835?w=200&h=150&fit=crop',
+            '/coinkrazy-thunder',
+            '/coinkrazy-thunder',
+            true
+          ]
+        );
+        console.log('[DB] CoinKrazy-Thunder game created');
+      } else {
+        console.log('[DB] CoinKrazy-Thunder game already exists');
+      }
+    } catch (err: any) {
+      console.log('[DB] CoinKrazy-Thunder game error:', err.message?.substring(0, 100));
     }
 
     // Seed AI employees if table is empty
