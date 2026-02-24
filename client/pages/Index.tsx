@@ -79,21 +79,26 @@ const Index = () => {
       const allGames = Array.isArray(response) ? response : (response?.data || []);
       const enabledGames = allGames.filter((g: Game) => g.enabled !== false);
 
-      // Prioritize CoinKrazy-CoinUp in featured games
-      const coinKrazyGame = enabledGames.find((g: Game) => g.slug === 'coinkrazy-coinup-lightning');
+      // Prioritize CoinKrazy games (CoinHot first, then CoinUp)
+      const coinKrazyCoinHot = enabledGames.find((g: Game) => g.slug === 'coinkrazy-coinhot-inferno');
+      const coinKrazyCoinUp = enabledGames.find((g: Game) => g.slug === 'coinkrazy-coinup-lightning');
       let featured = [];
 
-      if (coinKrazyGame) {
-        featured.push(coinKrazyGame);
-        // Add up to 3 more games
+      if (coinKrazyCoinHot) {
+        featured.push(coinKrazyCoinHot);
+      }
+      if (coinKrazyCoinUp) {
+        featured.push(coinKrazyCoinUp);
+      }
+
+      // Add remaining games up to 4 total
+      if (featured.length < 4) {
+        const usedSlugs = new Set(featured.map(g => g.slug));
         featured = featured.concat(
           enabledGames
-            .filter((g: Game) => g.slug !== 'coinkrazy-coinup-lightning')
-            .slice(0, 3)
+            .filter((g: Game) => !usedSlugs.has(g.slug))
+            .slice(0, 4 - featured.length)
         );
-      } else {
-        // Fallback to first 4 games if CoinKrazy not found
-        featured = enabledGames.slice(0, 4);
       }
 
       setFeaturedGames(featured);

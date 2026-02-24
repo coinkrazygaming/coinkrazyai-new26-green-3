@@ -410,6 +410,34 @@ const seedDatabase = async () => {
         console.log('[DB] CoinKrazy-CoinUp game already exists or error:', err.message?.substring(0, 100));
       }
 
+      // Add CoinKrazy-CoinHot as a featured game
+      try {
+        await query(
+          `INSERT INTO games (name, slug, category, type, provider, rtp, volatility, description, image_url, thumbnail, embed_url, launch_url, enabled, is_branded_popup, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+           ON CONFLICT (slug) DO UPDATE SET updated_at = CURRENT_TIMESTAMP`,
+          [
+            'CoinKrazy-CoinHot: Inferno Edition',
+            'coinkrazy-coinhot-inferno',
+            'Slots',
+            'slots',
+            'CoinKrazy Studios',
+            96.0,
+            'High',
+            'Scorching hot slot action with massive fire animations! Ignite the reels and win up to 10 SC with the CoinKrazy-CoinHot: Inferno Edition!',
+            'https://images.unsplash.com/photo-1538895217697-2dae11eafa72?w=400&h=300&fit=crop',
+            'https://images.unsplash.com/photo-1538895217697-2dae11eafa72?w=200&h=150&fit=crop',
+            '/coin-krazy-coin-hot',
+            '/coin-krazy-coin-hot',
+            true,
+            false
+          ]
+        );
+        console.log('[DB] Added CoinKrazy-CoinHot game');
+      } catch (err: any) {
+        console.log('[DB] CoinKrazy-CoinHot game already exists or error:', err.message?.substring(0, 100));
+      }
+
       // Seed bonuses
       const bonuses = [
         ['Welcome Bonus 100%', 'Deposit', '$100', 100, 10, 1200],

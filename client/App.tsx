@@ -15,6 +15,7 @@ import Register from "./pages/Register";
 import Store from "./pages/Store";
 import Admin from "./pages/Admin";
 import GamesManagement from "./pages/admin/GamesManagement";
+import AIGameEditor from "./pages/admin/AIGameEditor";
 import Slots from "./pages/Slots";
 import Poker from "./pages/Poker";
 import Bingo from "./pages/Bingo";
@@ -199,6 +200,10 @@ const AppRoutes = () => (
       }
     />
     <Route
+      path="/coin-krazy-coin-hot"
+      element={<CoinKrazyCoinHot />}
+    />
+    <Route
       path="/profile"
       element={
         <Layout>
@@ -259,6 +264,14 @@ const AppRoutes = () => (
       element={
         <Layout>
           <GamesManagement />
+        </Layout>
+      }
+    />
+    <Route
+      path="/admin/ai-game-editor"
+      element={
+        <Layout>
+          <AIGameEditor />
         </Layout>
       }
     />

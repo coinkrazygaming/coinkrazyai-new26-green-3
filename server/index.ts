@@ -195,7 +195,8 @@ import {
   locateThumbnail,
   bulkUpdateGames,
   buildGameFromTemplate,
-  handleSaveCrawledGame
+  handleSaveCrawledGame,
+  generateGameWithAI
 } from "./routes/games-sports";
 import {
   listGameFeatures,
@@ -672,6 +673,7 @@ export function createServer() {
   app.post("/api/admin/v2/games/save-crawled", verifyAdmin, handleSaveCrawledGame);
   app.get("/api/admin/v2/games/locate-thumbnail", verifyAdmin, locateThumbnail);
   app.post("/api/admin/v2/games/import-slots", verifyAdmin, handleImportGames);
+  app.post("/api/admin/v2/games/generate-with-ai", verifyAdmin, generateGameWithAI);
 
   // Game Metadata & Features
   app.get("/api/admin/v2/games/:gameId/metadata", getGameMetadata);

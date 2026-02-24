@@ -771,3 +771,87 @@ export const locateThumbnail: RequestHandler = async (req, res) => {
     res.status(500).json({ error: 'Failed to locate thumbnail suggestions' });
   }
 };
+
+// AI GAME GENERATION
+export const generateGameWithAI: RequestHandler = async (req, res) => {
+  try {
+    const { prompt } = req.body;
+
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    // Import Google Generative AI
+    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_KEY;
+
+    if (!apiKey) {
+      return res.status(500).json({ error: 'AI service not configured' });
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+
+    const aiPrompt = `You are a game designer. Based on this description, generate a JSON object for a new online game with ONLY these fields (no other fields):
+
+    User request: "${prompt}"
+
+    Return ONLY valid JSON (no markdown, no code blocks) with these fields:
+    - name: string (creative game name, max 50 chars)
+    - slug: string (lowercase, hyphens, no spaces)
+    - category: string (Slots, Poker, Bingo, or Sportsbook)
+    - type: string (slots, poker, bingo, or sportsbook)
+    - volatility: string (Low, Medium, or High)
+    - rtp: number (between 90-98)
+    - description: string (1-2 sentences)
+    - max_bet: number (must be 5 or less)
+    - min_bet: number (0.1-1)
+    - image_url: string (empty string is ok)
+
+    Example output:
+    {"name":"Fire Dragon Slots","slug":"fire-dragon-slots","category":"Slots","type":"slots","volatility":"High","rtp":96.5,"description":"Epic dragon-themed slot with fiery animations","max_bet":5,"min_bet":0.1,"image_url":""}`;
+
+    const result = await model.generateContent(aiPrompt);
+    const responseText = result.response.text();
+
+    // Parse the response - it should be JSON
+    let gameData;
+    try {
+      // Try to extract JSON from the response
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        gameData = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('No JSON found in response');
+      }
+    } catch (parseErr) {
+      console.error('Failed to parse AI response:', responseText);
+      return res.status(500).json({ error: 'Failed to parse AI response' });
+    }
+
+    // Validate and sanitize the response
+    const sanitized = {
+      name: String(gameData.name || '').substring(0, 50),
+      slug: String(gameData.slug || '').toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+      category: ['Slots', 'Poker', 'Bingo', 'Sportsbook'].includes(gameData.category) ? gameData.category : 'Slots',
+      type: gameData.type || 'slots',
+      volatility: ['Low', 'Medium', 'High'].includes(gameData.volatility) ? gameData.volatility : 'Medium',
+      rtp: Math.max(90, Math.min(98, parseFloat(gameData.rtp) || 96)),
+      description: String(gameData.description || '').substring(0, 500),
+      max_bet: Math.min(5, parseFloat(gameData.max_bet) || 5),
+      min_bet: parseFloat(gameData.min_bet) || 0.1,
+      image_url: gameData.image_url || '',
+    };
+
+    res.json({
+      success: true,
+      data: sanitized,
+    });
+  } catch (error) {
+    console.error('AI game generation error:', error);
+    res.status(500).json({
+      error: 'Failed to generate game with AI',
+      details: (error as Error).message,
+    });
+  }
+};
