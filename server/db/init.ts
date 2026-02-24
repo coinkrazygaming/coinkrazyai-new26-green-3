@@ -80,6 +80,27 @@ export const initializeDatabase = async () => {
       console.log('[DB] Missing tables migration applied');
     }
 
+    // Read and execute game system schema
+    const gameSystemPath = path.join(__dirname, 'game_system_schema.sql');
+    if (fs.existsSync(gameSystemPath)) {
+      const gameSystemSchema = fs.readFileSync(gameSystemPath, 'utf-8');
+      const gameSystemStatements = gameSystemSchema.split(';').filter(stmt => stmt.trim());
+      for (const statement of gameSystemStatements) {
+        if (statement.trim()) {
+          try {
+            await query(statement);
+          } catch (err: any) {
+            if (err.code === '42703' || err.code === '42701' || err.code === '42P07' || err.code === '42710' || err.code === '23503' || err.code === '42P01') {
+              console.log('[DB] Skipping game system schema statement (already exists):', err.message?.substring(0, 80));
+            } else {
+              console.log('[DB] Error in game system schema:', err.message);
+            }
+          }
+        }
+      }
+      console.log('[DB] Game system schema applied');
+    }
+
     // Read and execute challenges schema
     try {
       const challengesPath = path.join(__dirname, 'challenges_schema.sql');

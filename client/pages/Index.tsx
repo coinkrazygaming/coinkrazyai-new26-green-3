@@ -78,8 +78,25 @@ const Index = () => {
       const response = await gamesApi.getGames();
       const allGames = Array.isArray(response) ? response : (response?.data || []);
       const enabledGames = allGames.filter((g: Game) => g.enabled !== false);
-      // Get first 4 games as featured
-      setFeaturedGames(enabledGames.slice(0, 4));
+
+      // Prioritize CoinKrazy-CoinUp in featured games
+      const coinKrazyGame = enabledGames.find((g: Game) => g.slug === 'coinkrazy-coinup-lightning');
+      let featured = [];
+
+      if (coinKrazyGame) {
+        featured.push(coinKrazyGame);
+        // Add up to 3 more games
+        featured = featured.concat(
+          enabledGames
+            .filter((g: Game) => g.slug !== 'coinkrazy-coinup-lightning')
+            .slice(0, 3)
+        );
+      } else {
+        // Fallback to first 4 games if CoinKrazy not found
+        featured = enabledGames.slice(0, 4);
+      }
+
+      setFeaturedGames(featured);
     } catch (error) {
       console.error('Failed to fetch featured games:', error);
       setFeaturedGames([]);

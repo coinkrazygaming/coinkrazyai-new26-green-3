@@ -241,10 +241,6 @@ const Games = () => {
                     <span className="text-muted-foreground">Max Bet</span>
                     <span className="font-bold text-cyan-400">5 SC</span>
                   </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Max Win</span>
-                    <span className="font-bold text-green-400">10 SC</span>
-                  </div>
                 </div>
                 <div className="pt-2 flex items-center text-cyan-400 font-black text-xs uppercase tracking-widest group-hover:gap-2 transition-all">
                   Play Now <ChevronRight className="w-4 h-4" />

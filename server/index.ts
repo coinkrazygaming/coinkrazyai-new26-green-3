@@ -93,6 +93,18 @@ import {
   handleDebugGetGames
 } from "./routes/games";
 import {
+  handleGetGameTemplates,
+  handleGetGameTemplate,
+  handleCreateGameTemplate,
+  handleCreateGameFromTemplate,
+  handleCloneGame,
+  handleUpdateGameConfig as handleUpdateGameFactoryConfig,
+  handleGetGameDetails,
+  handleGetGameAnalytics,
+  handleGetGameEngines,
+  handleGetDefaultTemplates
+} from "./routes/game-factory";
+import {
   handleGetGameConfig,
   handleProcessSpin,
   handleGetSpinHistory,
