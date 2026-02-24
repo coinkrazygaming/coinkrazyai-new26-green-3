@@ -374,7 +374,7 @@ const seedDatabase = async () => {
         await query(
           `INSERT INTO games (name, slug, category, type, provider, rtp, volatility, description, image_url, thumbnail, embed_url, launch_url, enabled, is_branded_popup, created_at, updated_at)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-           ON CONFLICT (slug) DO UPDATE SET updated_at = CURRENT_TIMESTAMP`,
+           ON CONFLICT (slug) DO UPDATE SET image_url = EXCLUDED.image_url, thumbnail = EXCLUDED.thumbnail, updated_at = CURRENT_TIMESTAMP`,
           [
             'CoinKrazy-CoinUp: Lightning Edition',
             'coinkrazy-coinup-lightning',
@@ -383,9 +383,9 @@ const seedDatabase = async () => {
             'CoinKrazy Studios',
             96.5,
             'High',
-            'Lightning fast slots action with CoinUp bonus rounds. Strike it rich with the CoinKrazy-CoinUp: Lightning Edition!',
-            'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=400&h=300&fit=crop',
-            'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=200&h=150&fit=crop',
+            'Lightning fast slots action with CoinUp bonus rounds. Strike it rich with the CoinKrazy-CoinUp: Lightning Edition! 🎰⚡ PlayCoinKrazy.com',
+            'https://images.pexels.com/photos/29825624/pexels-photo-29825624.jpeg?w=400&h=300&fit=crop',
+            'https://images.pexels.com/photos/29825624/pexels-photo-29825624.jpeg?w=200&h=150&fit=crop',
             '/coin-krazy-coin-up',
             '/coin-krazy-coin-up',
             true,
@@ -402,7 +402,7 @@ const seedDatabase = async () => {
         await query(
           `INSERT INTO games (name, slug, category, type, provider, rtp, volatility, description, image_url, thumbnail, embed_url, launch_url, enabled, is_branded_popup, created_at, updated_at)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-           ON CONFLICT (slug) DO UPDATE SET updated_at = CURRENT_TIMESTAMP`,
+           ON CONFLICT (slug) DO UPDATE SET image_url = EXCLUDED.image_url, thumbnail = EXCLUDED.thumbnail, updated_at = CURRENT_TIMESTAMP`,
           [
             'CoinKrazy-Hot',
             'coinkrazy-hot-inferno',
@@ -411,9 +411,9 @@ const seedDatabase = async () => {
             'CoinKrazy Studios',
             96.8,
             'High',
-            'Blaze through reels with CoinKrazy-Hot! Inferno-themed slots with massive multipliers and epic bonus features!',
-            'https://images.unsplash.com/photo-1538895217697-2dae11eafa72?w=400&h=300&fit=crop',
-            'https://images.unsplash.com/photo-1538895217697-2dae11eafa72?w=200&h=150&fit=crop',
+            'Blaze through reels with CoinKrazy-Hot! Inferno-themed slots with massive multipliers and epic bonus features! 🔥💰 PlayCoinKrazy.com',
+            'https://images.pexels.com/photos/266388/pexels-photo-266388.jpeg?w=400&h=300&fit=crop',
+            'https://images.pexels.com/photos/266388/pexels-photo-266388.jpeg?w=200&h=150&fit=crop',
             '/coin-krazy-hot',
             '/coin-krazy-hot',
             true,
@@ -430,7 +430,7 @@ const seedDatabase = async () => {
         await query(
           `INSERT INTO games (name, slug, category, type, provider, rtp, volatility, description, image_url, thumbnail, embed_url, launch_url, enabled, is_branded_popup, created_at, updated_at)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-           ON CONFLICT (slug) DO UPDATE SET updated_at = CURRENT_TIMESTAMP`,
+           ON CONFLICT (slug) DO UPDATE SET image_url = EXCLUDED.image_url, thumbnail = EXCLUDED.thumbnail, updated_at = CURRENT_TIMESTAMP`,
           [
             'CoinKrazy-Thunder',
             'coinkrazy-thunder-elite',
@@ -439,9 +439,9 @@ const seedDatabase = async () => {
             'CoinKrazy Studios',
             97.0,
             'High',
-            'Strike it big with CoinKrazy-Thunder! Experience electrifying spins with thunderbolt wilds and powerful jackpot features!',
-            'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=400&h=300&fit=crop',
-            'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=200&h=150&fit=crop',
+            'Strike it big with CoinKrazy-Thunder! Experience electrifying spins with thunderbolt wilds and powerful jackpot features! ⚡🎰 PlayCoinKrazy.com',
+            'https://images.pexels.com/photos/167755/pexels-photo-167755.jpeg?w=400&h=300&fit=crop',
+            'https://images.pexels.com/photos/167755/pexels-photo-167755.jpeg?w=200&h=150&fit=crop',
             '/coin-krazy-thunder',
             '/coin-krazy-thunder',
             true,
@@ -458,7 +458,7 @@ const seedDatabase = async () => {
         await query(
           `INSERT INTO games (name, slug, category, type, provider, rtp, volatility, description, image_url, thumbnail, embed_url, launch_url, enabled, is_branded_popup, created_at, updated_at)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-           ON CONFLICT (slug) DO UPDATE SET updated_at = CURRENT_TIMESTAMP`,
+           ON CONFLICT (slug) DO UPDATE SET image_url = EXCLUDED.image_url, thumbnail = EXCLUDED.thumbnail, updated_at = CURRENT_TIMESTAMP`,
           [
             'CoinKrazy-4Wolfs',
             'coinkrazy-4wolfs-wild',
@@ -467,9 +467,9 @@ const seedDatabase = async () => {
             'CoinKrazy Studios',
             96.5,
             'High',
-            'Hunt for riches with CoinKrazy-4Wolfs! Pack your paylines with wild beasts and unleash massive winning combinations!',
-            'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=400&h=300&fit=crop',
-            'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=200&h=150&fit=crop',
+            'Hunt for riches with CoinKrazy-4Wolfs! Pack your paylines with wild beasts and unleash massive winning combinations! 🐺💰 PlayCoinKrazy.com',
+            'https://images.pexels.com/photos/14040295/pexels-photo-14040295.jpeg?w=400&h=300&fit=crop',
+            'https://images.pexels.com/photos/14040295/pexels-photo-14040295.jpeg?w=200&h=150&fit=crop',
             '/coin-krazy-4wolfs',
             '/coin-krazy-4wolfs',
             true,

@@ -40,6 +40,7 @@ import VIP from "./pages/VIP";
 import CoinKrazyCoinUp from "./pages/CoinKrazyCoinUp";
 import CoinKrazyCoinHot from "./pages/CoinKrazyCoinHot";
 import CoinKrazyThunder from "./pages/CoinKrazyThunder";
+import CoinKrazy4Wolfs from "./pages/CoinKrazy4Wolfs";
 
 const queryClient = new QueryClient();
 
@@ -209,6 +210,14 @@ const AppRoutes = () => (
       element={
         <Layout>
           <CoinKrazyThunder />
+        </Layout>
+      }
+    />
+    <Route
+      path="/coin-krazy-4wolfs"
+      element={
+        <Layout>
+          <CoinKrazy4Wolfs />
         </Layout>
       }
     />

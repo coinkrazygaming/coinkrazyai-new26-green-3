@@ -89,8 +89,8 @@ const Games = () => {
       // Calculate featured games - CoinKrazy Games Priority!
       let featured = [];
 
-      // Priority 1: Specific CoinKrazy Games (in order)
-      const coinKrazyGameNames = ['CoinKrazy-CoinUp', 'CoinKrazy-Hot', 'CoinKrazy-Thunder', 'CoinKrazy-4Wolfs'];
+      // Priority 1: ALL 4 CoinKrazy Games (in order)
+      const coinKrazyGameNames = ['CoinKrazy-CoinUp: Lightning Edition', 'CoinKrazy-Hot', 'CoinKrazy-Thunder', 'CoinKrazy-4Wolfs'];
       const coinKrazyGames = coinKrazyGameNames
         .map(name => enabledGames.find((g: Game) => g.name === name))
         .filter((g): g is Game => g !== undefined);
