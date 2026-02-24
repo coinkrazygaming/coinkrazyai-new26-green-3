@@ -815,6 +815,42 @@ const seedDatabase = async () => {
       console.log('[DB] CoinKrazy-Thunder game error:', err.message?.substring(0, 100));
     }
 
+    // Ensure CoinKrazy ChiliCoins game exists
+    try {
+      const existing = await query(
+        `SELECT id FROM games WHERE name = 'CoinKrazy ChiliCoins'`,
+        []
+      );
+
+      if (!existing.rows.length) {
+        await query(
+          `INSERT INTO games (name, slug, category, type, provider, rtp, volatility, description, image_url, thumbnail, embed_url, launch_url, enabled, is_branded_popup, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+          [
+            'CoinKrazy ChiliCoins',
+            'coinkrazy-chilicoins',
+            'Slots',
+            'slots',
+            'CoinKrazy Studios',
+            96.5,
+            'High',
+            '🌶️ Hold & Win fiery action! Land the Collect symbol to unlock up to 3 respins and accumulate bonus coins! Chili-themed mayhem with Max 10 SC wins! 🔥💰',
+            'https://images.unsplash.com/photo-1585518419759-3a6f5af4b1f5?w=400&h=300&fit=crop',
+            'https://images.unsplash.com/photo-1585518419759-3a6f5af4b1f5?w=200&h=150&fit=crop',
+            '/coinkrazy-chilicoins',
+            '/coinkrazy-chilicoins',
+            true,
+            true
+          ]
+        );
+        console.log('[DB] CoinKrazy ChiliCoins game created');
+      } else {
+        console.log('[DB] CoinKrazy ChiliCoins game already exists');
+      }
+    } catch (err: any) {
+      console.log('[DB] CoinKrazy ChiliCoins game error:', err.message?.substring(0, 100));
+    }
+
     // Seed AI employees if table is empty
     const aiCount = await query('SELECT COUNT(*) as count FROM ai_employees');
     if (parseInt(aiCount.rows[0].count) === 0) {

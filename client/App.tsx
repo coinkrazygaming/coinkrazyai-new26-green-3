@@ -41,6 +41,7 @@ import CoinKrazyCoinUp from "./pages/CoinKrazyCoinUp";
 import CoinKrazyCoinHot from "./pages/CoinKrazyCoinHot";
 import CoinKrazyThunder from "./pages/CoinKrazyThunder";
 import CoinKrazy4Wolfs from "./pages/CoinKrazy4Wolfs";
+import CoinKrazyChiliCoins from "./pages/CoinKrazyChiliCoins";
 
 const queryClient = new QueryClient();
 
@@ -218,6 +219,14 @@ const AppRoutes = () => (
       element={
         <Layout>
           <CoinKrazy4Wolfs />
+        </Layout>
+      }
+    />
+    <Route
+      path="/coinkrazy-chilicoins"
+      element={
+        <Layout>
+          <CoinKrazyChiliCoins />
         </Layout>
       }
     />
