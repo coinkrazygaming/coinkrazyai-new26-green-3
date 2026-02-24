@@ -66,7 +66,9 @@ import {
   handleUpdateAIStatus,
   handleGetStorePacks,
   handleSetMaintenanceMode,
-  handleGetSystemHealth as handleGetAdminSystemHealth
+  handleGetSystemHealth as handleGetAdminSystemHealth,
+  handleGenerateGameWithAI,
+  handleCreateGameFromAI
 } from "./routes/admin";
 import { handleSpin, handleGetConfig as getSlotsConfig, handleUpdateConfig as updateSlotsConfig } from "./routes/slots";
 import { handleImportGames } from "./routes/game-import";
@@ -418,7 +420,12 @@ import {
   getTicketDetails,
   addTicketMessage
 } from "./routes/support";
-import { handleAIChat, handleGetAIStatus } from "./routes/ai";
+import {
+  handleAIChat,
+  handleGetAIStatus,
+  handleGetConversationHistory,
+  handleGetSessions
+} from "./routes/ai";
 
 export function createServer() {
   const app = express();
@@ -580,6 +587,10 @@ export function createServer() {
   app.get("/api/admin/games", verifyAdmin, adminDb.getGamesList);
   app.post("/api/admin/games/rtp", verifyAdmin, adminDb.updateGameRTP);
   app.post("/api/admin/games/toggle", verifyAdmin, adminDb.toggleGame);
+
+  // AI Game Generation
+  app.post("/api/admin/v2/games/generate-with-ai", verifyAdmin, handleGenerateGameWithAI);
+  app.post("/api/admin/v2/games/create-from-ai", verifyAdmin, handleCreateGameFromAI);
 
   // Bonuses
   app.get("/api/admin/bonuses", verifyAdmin, adminDb.getBonusesList);
@@ -946,6 +957,8 @@ export function createServer() {
   // AI Chat
   app.post("/api/ai/chat", verifyPlayer, handleAIChat);
   app.get("/api/ai/status", handleGetAIStatus);
+  app.get("/api/ai/conversation/history", verifyPlayer, handleGetConversationHistory);
+  app.get("/api/ai/conversation/sessions", verifyPlayer, handleGetSessions);
 
   // ===== DEBUG ROUTES =====
   app.get("/api/debug/store-packs", async (_req, res) => {

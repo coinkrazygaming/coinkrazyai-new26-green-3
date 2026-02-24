@@ -293,3 +293,108 @@ export const handleLogout: RequestHandler = (req, res) => {
     res.status(500).json({ success: false, error: 'Logout failed' });
   }
 };
+
+// ===== AI GAME GENERATION =====
+export const handleGenerateGameWithAI: RequestHandler = async (req, res) => {
+  try {
+    const { prompt } = req.body;
+
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    // Generate a game suggestion based on the prompt
+    const gameSuggestion = generateGameSuggestion(prompt);
+
+    res.json({
+      success: true,
+      data: gameSuggestion
+    });
+  } catch (error) {
+    console.error('Failed to generate game:', error);
+    res.status(500).json({ success: false, error: 'Failed to generate game suggestion' });
+  }
+};
+
+export const handleCreateGameFromAI: RequestHandler = async (req, res) => {
+  try {
+    const { prompt, category, name, rtp, volatility } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: 'Game name is required' });
+    }
+
+    // Create the game in the database
+    const gameData = {
+      name,
+      category: category || 'Slots',
+      type: (category || 'Slots').toLowerCase(),
+      provider: 'AI-Generated',
+      rtp: rtp || 96.5,
+      volatility: volatility || 'Medium',
+      description: prompt || `${name} - AI-Generated Game`,
+      enabled: true,
+      image_url: `https://api.placeholder.com/400/300?text=${encodeURIComponent(name)}`,
+      slug: name.toLowerCase().replace(/\s+/g, '-')
+    };
+
+    const result = await dbQueries.query(
+      `INSERT INTO games (name, slug, category, type, provider, rtp, volatility, description, image_url, enabled, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+       RETURNING *`,
+      [gameData.name, gameData.slug, gameData.category, gameData.type, gameData.provider, gameData.rtp, gameData.volatility, gameData.description, gameData.image_url, gameData.enabled]
+    );
+
+    res.json({
+      success: true,
+      data: {
+        game: result.rows[0],
+        message: `Game "${name}" created successfully!`
+      }
+    });
+  } catch (error) {
+    console.error('Failed to create game:', error);
+    res.status(500).json({ success: false, error: 'Failed to create game' });
+  }
+};
+
+// Helper function to generate game suggestions
+function generateGameSuggestion(prompt: string) {
+  const suggestions = [
+    {
+      name: 'Emerald Kingdom',
+      category: 'Slots',
+      description: 'A mythical slot game with treasures and magic',
+      rtp: 96.2,
+      volatility: 'Medium',
+      image_url: 'https://api.placeholder.com/400/300?text=Emerald+Kingdom'
+    },
+    {
+      name: 'Golden Rush',
+      category: 'Slots',
+      description: 'Strike it rich in this high-volatility slot adventure',
+      rtp: 96.5,
+      volatility: 'High',
+      image_url: 'https://api.placeholder.com/400/300?text=Golden+Rush'
+    },
+    {
+      name: 'Fortune Spin',
+      category: 'Slots',
+      description: 'Classic spin with modern twists and bonus rounds',
+      rtp: 95.8,
+      volatility: 'Medium',
+      image_url: 'https://api.placeholder.com/400/300?text=Fortune+Spin'
+    }
+  ];
+
+  // Simple matching based on keywords in prompt
+  let selectedSuggestion = suggestions[0];
+
+  if (prompt.toLowerCase().includes('high') || prompt.toLowerCase().includes('volatile')) {
+    selectedSuggestion = suggestions[1];
+  } else if (prompt.toLowerCase().includes('classic') || prompt.toLowerCase().includes('traditional')) {
+    selectedSuggestion = suggestions[2];
+  }
+
+  return selectedSuggestion;
+}

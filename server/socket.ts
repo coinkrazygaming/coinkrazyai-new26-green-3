@@ -53,6 +53,29 @@ export function setupSocketIO(server: HttpServer) {
       console.log(`Player ${data.playerId} left poker table ${data.tableId}`);
     });
 
+    // ===== AI EVENTS =====
+    socket.on("ai:subscribe_agent_status", (data: { agentId: string }) => {
+      const room = `ai_agent_${data.agentId}`;
+      socket.join(room);
+      console.log(`Client subscribed to AI agent ${data.agentId} updates`);
+    });
+
+    socket.on("ai:unsubscribe_agent_status", (data: { agentId: string }) => {
+      const room = `ai_agent_${data.agentId}`;
+      socket.leave(room);
+      console.log(`Client unsubscribed from AI agent ${data.agentId} updates`);
+    });
+
+    socket.on("ai:subscribe_dashboard", () => {
+      socket.join("ai_dashboard");
+      console.log(`Client subscribed to AI dashboard updates`);
+    });
+
+    socket.on("ai:unsubscribe_dashboard", () => {
+      socket.leave("ai_dashboard");
+      console.log(`Client unsubscribed from AI dashboard updates`);
+    });
+
     socket.on("disconnect", () => {
       console.log("Client disconnected:", socket.id);
     });
@@ -85,5 +108,42 @@ export function emitGameUpdate(gameType: string, data: any) {
 export function emitAdminNotification(notification: any) {
   if (io) {
     io.emit('admin:notification', notification);
+  }
+}
+
+export function emitAIAgentStatusUpdate(agentId: string, status: any) {
+  if (io) {
+    // Emit to agent-specific room
+    io.to(`ai_agent_${agentId}`).emit('ai:agent_status_update', {
+      agentId,
+      ...status,
+      timestamp: new Date().toISOString()
+    });
+
+    // Also emit to dashboard room for broader updates
+    io.to('ai_dashboard').emit('ai:dashboard_update', {
+      agentId,
+      ...status,
+      timestamp: new Date().toISOString()
+    });
+  }
+}
+
+export function emitAIChatMessage(sessionId: string, message: any) {
+  if (io) {
+    io.to(`ai_session_${sessionId}`).emit('ai:chat_message', {
+      sessionId,
+      ...message,
+      timestamp: new Date().toISOString()
+    });
+  }
+}
+
+export function emitAIEvent(eventType: string, data: any) {
+  if (io) {
+    io.emit(`ai:${eventType}`, {
+      ...data,
+      timestamp: new Date().toISOString()
+    });
   }
 }

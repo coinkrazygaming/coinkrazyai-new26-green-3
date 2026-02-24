@@ -388,3 +388,75 @@ CREATE TABLE IF NOT EXISTS sports_bets (
     settled_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 12. AI Conversation History & Management
+CREATE TABLE IF NOT EXISTS ai_conversation_history (
+    id SERIAL PRIMARY KEY,
+    player_id INTEGER REFERENCES players(id) ON DELETE CASCADE,
+    session_id VARCHAR(255) NOT NULL,
+    agent_id VARCHAR(100),
+    agent_name VARCHAR(100) DEFAULT 'LuckyAI',
+    message_type VARCHAR(50) NOT NULL, -- 'user', 'ai', 'system'
+    message_content TEXT NOT NULL,
+    message_metadata JSONB DEFAULT '{}',
+    sentiment VARCHAR(50), -- 'positive', 'neutral', 'negative'
+    context_tokens INTEGER DEFAULT 0,
+    response_time_ms INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX player_session_idx (player_id, session_id)
+);
+
+CREATE TABLE IF NOT EXISTS ai_conversation_sessions (
+    id SERIAL PRIMARY KEY,
+    session_id VARCHAR(255) UNIQUE NOT NULL,
+    player_id INTEGER REFERENCES players(id) ON DELETE CASCADE,
+    title VARCHAR(255),
+    topic VARCHAR(100),
+    context_summary TEXT,
+    total_messages INTEGER DEFAULT 0,
+    total_context_tokens INTEGER DEFAULT 0,
+    rating INTEGER, -- 1-5 star rating
+    feedback TEXT,
+    status VARCHAR(50) DEFAULT 'active', -- 'active', 'archived', 'deleted'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_interaction_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS ai_agent_status (
+    id SERIAL PRIMARY KEY,
+    agent_id VARCHAR(100) UNIQUE NOT NULL,
+    agent_name VARCHAR(100) NOT NULL,
+    status VARCHAR(50) DEFAULT 'idle', -- 'idle', 'active', 'busy', 'offline'
+    current_task VARCHAR(255),
+    total_conversations INTEGER DEFAULT 0,
+    average_response_time_ms INTEGER,
+    last_activity_at TIMESTAMP,
+    uptime_percentage DECIMAL(5, 2) DEFAULT 100.00,
+    performance_score DECIMAL(5, 2) DEFAULT 100.00,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS ai_content_filter_logs (
+    id SERIAL PRIMARY KEY,
+    player_id INTEGER REFERENCES players(id) ON DELETE SET NULL,
+    original_message TEXT,
+    filtered_message TEXT,
+    filter_reason VARCHAR(255),
+    severity VARCHAR(50), -- 'low', 'medium', 'high'
+    action_taken VARCHAR(100), -- 'filtered', 'blocked', 'flagged'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS ai_rate_limits (
+    id SERIAL PRIMARY KEY,
+    player_id INTEGER REFERENCES players(id) ON DELETE CASCADE,
+    endpoint VARCHAR(255) NOT NULL,
+    request_count INTEGER DEFAULT 1,
+    window_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    window_end TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(player_id, endpoint)
+);

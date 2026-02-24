@@ -1214,3 +1214,143 @@ export const getSocialShareStats = async () => {
      GROUP BY platform`
   );
 };
+
+// ===== AI CONVERSATIONS =====
+export const saveAIMessage = async (playerId: number, sessionId: string, agentId: string, agentName: string, messageType: string, content: string, metadata?: any) => {
+  return query(
+    `INSERT INTO ai_conversation_history (player_id, session_id, agent_id, agent_name, message_type, message_content, message_metadata)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     RETURNING *`,
+    [playerId, sessionId, agentId, agentName, messageType, content, JSON.stringify(metadata || {})]
+  );
+};
+
+export const getConversationHistory = async (playerId: number, sessionId: string, limit = 50) => {
+  return query(
+    `SELECT * FROM ai_conversation_history
+     WHERE player_id = $1 AND session_id = $2
+     ORDER BY created_at ASC
+     LIMIT $3`,
+    [playerId, sessionId, limit]
+  );
+};
+
+export const getConversationContext = async (playerId: number, sessionId: string, lastN = 10) => {
+  return query(
+    `SELECT id, agent_name, message_type, message_content, created_at
+     FROM ai_conversation_history
+     WHERE player_id = $1 AND session_id = $2
+     ORDER BY created_at DESC
+     LIMIT $3`,
+    [playerId, sessionId, lastN]
+  );
+};
+
+export const createConversationSession = async (playerId: number, sessionId: string, title?: string, topic?: string) => {
+  return query(
+    `INSERT INTO ai_conversation_sessions (player_id, session_id, title, topic, status)
+     VALUES ($1, $2, $3, $4, 'active')
+     ON CONFLICT (session_id) DO UPDATE SET updated_at = NOW(), last_interaction_at = NOW()
+     RETURNING *`,
+    [playerId, sessionId, title || 'Chat Session', topic || 'general']
+  );
+};
+
+export const updateConversationSession = async (sessionId: string, updates: any) => {
+  const keys = Object.keys(updates);
+  const values = Object.values(updates);
+  values.push(sessionId);
+
+  const setClause = keys.map((k, i) => `${k} = $${i + 1}`).join(', ');
+  return query(
+    `UPDATE ai_conversation_sessions SET ${setClause}, updated_at = NOW(), last_interaction_at = NOW()
+     WHERE session_id = $${keys.length + 1}
+     RETURNING *`,
+    values
+  );
+};
+
+export const getPlayerSessions = async (playerId: number, limit = 20) => {
+  return query(
+    `SELECT * FROM ai_conversation_sessions
+     WHERE player_id = $1 AND status != 'deleted'
+     ORDER BY last_interaction_at DESC
+     LIMIT $2`,
+    [playerId, limit]
+  );
+};
+
+export const getAIEmployees = async () => {
+  return query(
+    `SELECT * FROM ai_employees ORDER BY name ASC`
+  );
+};
+
+export const getAIEmployeeById = async (id: string) => {
+  return query(
+    `SELECT * FROM ai_employees WHERE id = $1`,
+    [id]
+  );
+};
+
+export const updateAIAgentStatus = async (agentId: string, status: string, currentTask?: string) => {
+  return query(
+    `INSERT INTO ai_agent_status (agent_id, agent_name, status, current_task)
+     SELECT $1, name, $2, $3 FROM ai_employees WHERE id = $1
+     ON CONFLICT (agent_id) DO UPDATE SET status = $2, current_task = $3, updated_at = NOW()
+     RETURNING *`,
+    [agentId, status, currentTask || null]
+  );
+};
+
+export const getAIAgentStatus = async (agentId?: string) => {
+  if (agentId) {
+    return query(
+      `SELECT * FROM ai_agent_status WHERE agent_id = $1`,
+      [agentId]
+    );
+  }
+  return query(`SELECT * FROM ai_agent_status ORDER BY agent_name ASC`);
+};
+
+export const logContentFilter = async (playerId: number | null, originalMessage: string, filteredMessage: string, reason: string, severity: string, action: string) => {
+  return query(
+    `INSERT INTO ai_content_filter_logs (player_id, original_message, filtered_message, filter_reason, severity, action_taken)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING *`,
+    [playerId, originalMessage, filteredMessage, reason, severity, action]
+  );
+};
+
+export const checkRateLimit = async (playerId: number, endpoint: string, limit: number = 10, windowSeconds: number = 60) => {
+  const windowStart = new Date(Date.now() - (windowSeconds * 1000));
+
+  const result = await query(
+    `SELECT request_count, window_start FROM ai_rate_limits
+     WHERE player_id = $1 AND endpoint = $2 AND window_start > $3`,
+    [playerId, endpoint, windowStart]
+  );
+
+  if (result.rows.length === 0) {
+    // Create new window
+    await query(
+      `INSERT INTO ai_rate_limits (player_id, endpoint, request_count, window_start, window_end)
+       VALUES ($1, $2, 1, NOW(), NOW() + INTERVAL '${windowSeconds} seconds')`,
+      [playerId, endpoint]
+    );
+    return { allowed: true, remaining: limit - 1 };
+  }
+
+  const current = result.rows[0].request_count;
+  if (current >= limit) {
+    return { allowed: false, remaining: 0 };
+  }
+
+  // Increment counter
+  await query(
+    `UPDATE ai_rate_limits SET request_count = request_count + 1 WHERE player_id = $1 AND endpoint = $2`,
+    [playerId, endpoint]
+  );
+
+  return { allowed: true, remaining: limit - current - 1 };
+};

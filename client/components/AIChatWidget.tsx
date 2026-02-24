@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { MessageSquare, X, Send, Cpu, Bot, Loader2, Sparkles, TrendingUp, ShieldCheck } from 'lucide-react';
+import { MessageSquare, X, Send, Cpu, Bot, Loader2, Sparkles, TrendingUp, ShieldCheck, History, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
 
@@ -12,6 +12,15 @@ interface Message {
   sender: 'user' | 'ai';
   agent?: string;
   timestamp: Date;
+}
+
+interface ConversationSession {
+  id: string;
+  session_id: string;
+  title: string;
+  topic: string;
+  total_messages: number;
+  last_interaction_at: string;
 }
 
 const INITIAL_MESSAGES: Message[] = [
@@ -24,11 +33,20 @@ const INITIAL_MESSAGES: Message[] = [
   },
 ];
 
+// Generate unique session ID
+function generateSessionId(userId: number | undefined): string {
+  return `session-${userId}-${Date.now()}`;
+}
+
 export const AIChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [sessionId, setSessionId] = useState<string>('');
+  const [sessions, setSessions] = useState<ConversationSession[]>([]);
+  const [showSessions, setShowSessions] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -36,14 +54,101 @@ export const AIChatWidget = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // Initialize session
+  useEffect(() => {
+    if (user?.id && !sessionId) {
+      const newSessionId = generateSessionId(user.id);
+      setSessionId(newSessionId);
+      localStorage.setItem(`ai-session-${user.id}`, newSessionId);
+    }
+  }, [user, sessionId]);
+
+  // Load conversation history when session changes
+  useEffect(() => {
+    if (isOpen && sessionId) {
+      loadConversationHistory();
+    }
+  }, [sessionId, isOpen]);
+
+  // Load saved sessions
+  useEffect(() => {
+    if (isOpen && user?.id) {
+      loadSessions();
+    }
+  }, [isOpen, user?.id]);
+
   useEffect(() => {
     if (isOpen) {
       scrollToBottom();
     }
   }, [messages, isOpen, isTyping]);
 
+  const loadConversationHistory = async () => {
+    try {
+      setIsLoadingHistory(true);
+      const response = await fetch(`/api/ai/conversation/history?sessionId=${sessionId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      });
+
+      if (!response.ok) return;
+
+      const result = await response.json();
+      if (result.data && result.data.length > 0) {
+        const loadedMessages: Message[] = result.data.map((msg: any) => ({
+          id: msg.id.toString(),
+          text: msg.message_content,
+          sender: msg.message_type === 'user' ? 'user' : 'ai',
+          agent: msg.agent_name,
+          timestamp: new Date(msg.created_at),
+        }));
+        setMessages(loadedMessages.length > 0 ? loadedMessages : INITIAL_MESSAGES);
+      }
+    } catch (error) {
+      console.error('Failed to load conversation history:', error);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  const loadSessions = async () => {
+    try {
+      const response = await fetch('/api/ai/conversation/sessions', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      });
+
+      if (!response.ok) return;
+
+      const result = await response.json();
+      if (result.data) {
+        setSessions(result.data.slice(0, 10)); // Show last 10 sessions
+      }
+    } catch (error) {
+      console.error('Failed to load sessions:', error);
+    }
+  };
+
+  const switchSession = (newSessionId: string) => {
+    setSessionId(newSessionId);
+    setShowSessions(false);
+    setMessages(INITIAL_MESSAGES);
+  };
+
+  const startNewSession = () => {
+    if (user?.id) {
+      const newSessionId = generateSessionId(user.id);
+      setSessionId(newSessionId);
+      localStorage.setItem(`ai-session-${user.id}`, newSessionId);
+      setMessages(INITIAL_MESSAGES);
+      setShowSessions(false);
+    }
+  };
+
   const handleSend = async () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || !sessionId) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -52,6 +157,7 @@ export const AIChatWidget = () => {
       timestamp: new Date(),
     };
 
+    const messageToSend = inputValue;
     setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
     setIsTyping(true);
@@ -64,14 +170,18 @@ export const AIChatWidget = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
         },
-        body: JSON.stringify({ message: inputValue })
+        body: JSON.stringify({
+          message: messageToSend,
+          sessionId: sessionId,
+          conversationHistory: messages.slice(-5) // Send last 5 messages for context
+        })
       });
 
       const result = await response.json();
 
       if (result.success && result.data) {
         const aiMessage: Message = {
-          id: (Date.now() + 1).toString(),
+          id: result.data.messageId?.toString() || (Date.now() + 1).toString(),
           text: result.data.message,
           sender: 'ai',
           agent: result.data.agent,
@@ -98,6 +208,52 @@ export const AIChatWidget = () => {
 
   return (
     <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end gap-4">
+      {/* Session History Sidebar */}
+      {isOpen && showSessions && (
+        <Card className="w-64 h-[500px] flex flex-col shadow-2xl border-2 border-primary/20 animate-in fade-in slide-in-from-bottom-4 duration-300 mr-2">
+          <CardHeader className="bg-slate-200 dark:bg-slate-800 p-3 flex flex-row items-center justify-between space-y-0 border-b">
+            <div className="flex items-center gap-2">
+              <History className="w-4 h-4" />
+              <CardTitle className="text-xs font-bold">CHAT HISTORY</CardTitle>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowSessions(false)}
+              className="h-6 w-6"
+            >
+              <X className="w-3 h-3" />
+            </Button>
+          </CardHeader>
+          <CardContent className="flex-1 overflow-y-auto p-3 space-y-2">
+            <Button
+              onClick={startNewSession}
+              size="sm"
+              className="w-full text-xs"
+              variant="outline"
+            >
+              <Plus className="w-3 h-3 mr-1" />
+              New Chat
+            </Button>
+            {sessions.map((session) => (
+              <button
+                key={session.session_id}
+                onClick={() => switchSession(session.session_id)}
+                className={cn(
+                  "w-full text-left p-2 rounded text-xs truncate transition-colors",
+                  sessionId === session.session_id
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-slate-100 dark:hover:bg-slate-700"
+                )}
+              >
+                <div className="font-semibold truncate">{session.title}</div>
+                <div className="text-[10px] opacity-70">{session.total_messages} messages</div>
+              </button>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Chat Window */}
       {isOpen && (
         <Card className="w-80 md:w-96 h-[500px] flex flex-col shadow-2xl border-2 border-primary/20 animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -114,13 +270,29 @@ export const AIChatWidget = () => {
                 </div>
               </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="hover:bg-white/10 text-white h-8 w-8">
-              <X className="w-4 h-4" />
-            </Button>
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowSessions(!showSessions)}
+                className="hover:bg-white/10 text-white h-8 w-8"
+                title="Conversation history"
+              >
+                <History className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="hover:bg-white/10 text-white h-8 w-8">
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           </CardHeader>
 
           <CardContent className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-950/50">
-            {messages.map((message) => (
+            {isLoadingHistory && (
+              <div className="flex justify-center items-center h-full">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              </div>
+            )}
+            {!isLoadingHistory && messages.map((message) => (
               <div
                 key={message.id}
                 className={cn(
