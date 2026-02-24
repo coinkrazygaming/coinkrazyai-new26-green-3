@@ -204,7 +204,11 @@ const AppRoutes = () => (
     />
     <Route
       path="/coin-krazy-coin-hot"
-      element={<CoinKrazyCoinHot />}
+      element={
+        <Layout>
+          <CoinKrazyCoinHot />
+        </Layout>
+      }
     />
     <Route
       path="/coinkrazy-thunder"
