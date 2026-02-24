@@ -67,8 +67,8 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
           const response = await apiCall<any>(`/games/${game.id}/config`);
           if (response.data) {
             const config = {
-              min_bet: response.data.min_bet || 0.01,
-              max_bet: response.data.max_bet || 100
+              min_bet: Number(response.data.min_bet) || 0.01,
+              max_bet: Number(response.data.max_bet) || 100
             };
             setGameConfig(config);
             setCurrentBet(config.min_bet);
@@ -121,7 +121,7 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
   };
 
   const handleBetChange = (amount: number) => {
-    setCurrentBet(amount);
+    setCurrentBet(Number(amount));
   };
 
   const handlePlaySpin = async () => {

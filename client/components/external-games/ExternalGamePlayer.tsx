@@ -50,7 +50,15 @@ export const ExternalGamePlayer: React.FC<ExternalGamePlayerProps> = ({ gameId }
       try {
         setLoading(true);
         const response = await apiCall<any>(`/games/${gameId}/config`);
-        setGameConfig(response.data);
+        if (response.data) {
+          // Ensure numeric fields are properly converted
+          setGameConfig({
+            ...response.data,
+            max_win_amount: Number(response.data.max_win_amount),
+            min_bet: Number(response.data.min_bet),
+            max_bet: Number(response.data.max_bet)
+          });
+        }
         setError(null);
       } catch (err: any) {
         setError(err.message || 'Failed to load game');
