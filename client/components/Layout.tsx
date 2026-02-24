@@ -51,35 +51,46 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   React.useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const response = await fetch('/api/ai/status');
+        const response = await fetch('/api/ai/status', {
+          signal: AbortSignal.timeout(5000) // 5 second timeout
+        });
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          console.error(`AI status fetch error: ${response.status}`);
+          return;
         }
         const data = await response.json();
-        if (data.success) {
+        if (data.success && data.data) {
           setAiEmployees(data.data);
         }
       } catch (err) {
-        console.error('Failed to fetch AI status:', err);
+        console.debug('Failed to fetch AI status (this is non-critical):', err);
+        // This is non-critical, so we don't log as error
       }
     };
 
     const fetchUnread = async () => {
       if (!isAuthenticated) return;
       try {
+        const token = localStorage.getItem('auth_token');
+        if (!token) return;
+
         const response = await fetch('/api/messages/unread', {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-          }
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          signal: AbortSignal.timeout(5000) // 5 second timeout
         });
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          console.debug(`Unread messages fetch status: ${response.status}`);
+          return;
         }
         const data = await response.json();
         // The API returns the array directly
         setUnreadMessages(Array.isArray(data) ? data.length : 0);
       } catch (err) {
-        console.error('Failed to fetch unread messages:', err);
+        console.debug('Failed to fetch unread messages (this is non-critical):', err);
+        // This is non-critical, so we don't log as error
       }
     };
 
