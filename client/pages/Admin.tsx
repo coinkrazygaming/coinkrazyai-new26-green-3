@@ -18,6 +18,7 @@ import AdminGamesSports from '@/components/admin/AdminGamesSports';
 import AdminOperations from '@/components/admin/AdminOperations';
 import AdminAdvanced from '@/components/admin/AdminAdvanced';
 import AdminStore from '@/components/admin/AdminStore';
+import AIGameEditor from '@/pages/admin/AIGameEditor';
 
 const Admin = () => {
   const { isAdmin, isLoading: authLoading } = useAuth();
@@ -54,16 +55,17 @@ const Admin = () => {
 
       {/* Main Tabs Navigation */}
       <Tabs value={activeSection} onValueChange={setActiveSection} className="w-full">
-        <TabsList className="grid w-full grid-cols-11 mb-6 overflow-x-auto">
+        <TabsList className="grid w-full grid-cols-6 md:grid-cols-12 mb-6 overflow-x-auto">
           <TabsTrigger value="dashboard" className="text-xs">Dashboard</TabsTrigger>
-          <TabsTrigger value="sales" className="text-xs">Sales Analytics</TabsTrigger>
+          <TabsTrigger value="sales" className="text-xs">Sales</TabsTrigger>
           <TabsTrigger value="notifications" className="text-xs">Notifications</TabsTrigger>
           <TabsTrigger value="players" className="text-xs">Players</TabsTrigger>
           <TabsTrigger value="kyc" className="text-xs">KYC</TabsTrigger>
           <TabsTrigger value="wallet" className="text-xs">Wallet</TabsTrigger>
           <TabsTrigger value="store" className="text-xs">Store</TabsTrigger>
           <TabsTrigger value="financial" className="text-xs">Financial</TabsTrigger>
-          <TabsTrigger value="games" className="text-xs">Games & Sports</TabsTrigger>
+          <TabsTrigger value="games" className="text-xs">Games</TabsTrigger>
+          <TabsTrigger value="ai-editor" className="text-xs font-black text-orange-500">✨ AI Editor</TabsTrigger>
           <TabsTrigger value="operations" className="text-xs">Operations</TabsTrigger>
           <TabsTrigger value="advanced" className="text-xs">Advanced</TabsTrigger>
         </TabsList>
@@ -111,6 +113,11 @@ const Admin = () => {
         {/* Games & Sports */}
         <TabsContent value="games">
           <AdminGamesSports />
+        </TabsContent>
+
+        {/* AI Game Editor */}
+        <TabsContent value="ai-editor">
+          <AIGameEditor />
         </TabsContent>
 
         {/* Operations */}

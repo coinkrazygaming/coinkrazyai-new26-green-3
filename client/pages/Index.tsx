@@ -79,25 +79,30 @@ const Index = () => {
       const allGames = Array.isArray(response) ? response : (response?.data || []);
       const enabledGames = allGames.filter((g: Game) => g.enabled !== false);
 
-      // Prioritize CoinKrazy games (CoinHot first, then CoinUp)
-      const coinKrazyCoinHot = enabledGames.find((g: Game) => g.slug === 'coinkrazy-coinhot-inferno');
-      const coinKrazyCoinUp = enabledGames.find((g: Game) => g.slug === 'coinkrazy-coinup-lightning');
       let featured = [];
 
-      if (coinKrazyCoinHot) {
+      // Priority 1: AI-Generated Games from CoinKrazy Studios
+      const aiGeneratedGames = enabledGames.filter((g: Game) => g.provider === 'CoinKrazy Studios');
+      featured = featured.concat(aiGeneratedGames);
+
+      // Priority 2: CoinKrazy branded games (CoinHot first, then CoinUp)
+      const coinKrazyCoinHot = enabledGames.find((g: Game) => g.slug === 'coinkrazy-coinhot-inferno');
+      const coinKrazyCoinUp = enabledGames.find((g: Game) => g.slug === 'coinkrazy-coinup-lightning');
+
+      if (coinKrazyCoinHot && !featured.find(g => g.id === coinKrazyCoinHot.id)) {
         featured.push(coinKrazyCoinHot);
       }
-      if (coinKrazyCoinUp) {
+      if (coinKrazyCoinUp && !featured.find(g => g.id === coinKrazyCoinUp.id)) {
         featured.push(coinKrazyCoinUp);
       }
 
-      // Add remaining games up to 4 total
-      if (featured.length < 4) {
-        const usedSlugs = new Set(featured.map(g => g.slug));
+      // Priority 3: Add remaining games up to 6 total to showcase more variety
+      if (featured.length < 6) {
+        const usedIds = new Set(featured.map(g => g.id));
         featured = featured.concat(
           enabledGames
-            .filter((g: Game) => !usedSlugs.has(g.slug))
-            .slice(0, 4 - featured.length)
+            .filter((g: Game) => !usedIds.has(g.id))
+            .slice(0, 6 - featured.length)
         );
       }
 
@@ -307,14 +312,30 @@ const Index = () => {
         ) : games.length > 0 ? (
           <GameLauncher>
             {(launchGame) => (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {games.map((game) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {games.map((game) => {
+                  const isAiGenerated = game.provider === 'CoinKrazy Studios';
+                  return (
                   <Card
                     key={game.id}
-                    className="group overflow-hidden border-border/50 hover:border-primary/50 transition-all hover:shadow-[0_0_20px_rgba(57,255,20,0.1)]"
+                    className={cn(
+                      "group overflow-hidden border-border/50 transition-all hover:shadow-[0_0_20px_rgba(57,255,20,0.1)]",
+                      isAiGenerated ? "border-orange-500/50 hover:border-orange-500" : "hover:border-primary/50"
+                    )}
                   >
-                    <CardHeader className="p-0">
-                      <div className="h-40 flex items-center justify-center bg-gradient-to-br from-blue-600 to-blue-400 transition-transform group-hover:scale-105 duration-500 overflow-hidden">
+                    <CardHeader className="p-0 relative">
+                      {isAiGenerated && (
+                        <div className="absolute top-2 left-2 z-10 bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-lg">
+                          <Sparkles className="w-3 h-3" />
+                          AI Generated
+                        </div>
+                      )}
+                      <div className={cn(
+                        "h-40 flex items-center justify-center transition-transform group-hover:scale-105 duration-500 overflow-hidden",
+                        isAiGenerated
+                          ? "bg-gradient-to-br from-orange-600 to-red-500"
+                          : "bg-gradient-to-br from-blue-600 to-blue-400"
+                      )}>
                         <img
                           src={game.image_url || game.thumbnail}
                           alt={game.name}
@@ -329,8 +350,13 @@ const Index = () => {
                     <CardContent className="p-6">
                       <div className="flex justify-between items-start mb-2">
                         <CardTitle className="text-xl font-bold line-clamp-1">{game.name}</CardTitle>
-                        <Badge className="bg-primary/20 text-primary hover:bg-primary/20 border-none text-xs">
-                          {game.badge}
+                        <Badge className={cn(
+                          "border-none text-xs",
+                          isAiGenerated
+                            ? "bg-orange-500/20 text-orange-400 hover:bg-orange-500/20"
+                            : "bg-primary/20 text-primary hover:bg-primary/20"
+                        )}>
+                          {isAiGenerated ? "AI Studio" : game.badge}
                         </Badge>
                       </div>
                       <CardDescription className="text-muted-foreground text-sm">{game.provider}</CardDescription>
@@ -361,7 +387,8 @@ const Index = () => {
                       </Button>
                     </CardFooter>
                   </Card>
-                ))}
+                );
+                })}
               </div>
             )}
           </GameLauncher>
