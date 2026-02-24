@@ -305,13 +305,35 @@ export const getCasinoSettings = async (key?: string) => {
 };
 
 export const updateCasinoSetting = async (key: string, value: string) => {
-  return query(
-    `INSERT INTO casino_settings (setting_key, setting_value, updated_at)
-     VALUES ($1, $2, NOW())
-     ON CONFLICT (setting_key) DO UPDATE SET setting_value = EXCLUDED.setting_value, updated_at = NOW()
-     RETURNING *`,
-    [key, value]
-  );
+  try {
+    // First try to update existing record
+    const updateResult = await query(
+      `UPDATE casino_settings SET setting_value = $2, updated_at = NOW() WHERE setting_key = $1 RETURNING *`,
+      [key, value]
+    );
+
+    // If no rows were updated, insert new record
+    if (updateResult.rowCount === 0) {
+      return query(
+        `INSERT INTO casino_settings (setting_key, setting_value, updated_at) VALUES ($1, $2, NOW()) RETURNING *`,
+        [key, value]
+      );
+    }
+
+    return updateResult;
+  } catch (err) {
+    // Fallback: try insert if update fails
+    try {
+      return await query(
+        `INSERT INTO casino_settings (setting_key, setting_value, updated_at) VALUES ($1, $2, NOW()) RETURNING *`,
+        [key, value]
+      );
+    } catch {
+      // If insert also fails, log and continue
+      console.warn(`Failed to update casino setting ${key}:`, err instanceof Error ? err.message : 'Unknown error');
+      throw err;
+    }
+  }
 };
 
 // ===== STORE & PURCHASES =====
