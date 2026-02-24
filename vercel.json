@@ -1,12 +1,1 @@
-{
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/server/api/$1"  // Adjust path to match your /server structure; e.g., if entry is /server/index.js, use "/server/index.js"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/spa/index.html"
-    }
-  ]
-}
+
