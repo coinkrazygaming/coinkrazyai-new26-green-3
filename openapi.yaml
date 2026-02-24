@@ -1,0 +1,1872 @@
+openapi: 3.0.0
+info:
+  title: CoinKrazy AI Platform API
+  description: |
+    Complete REST API for CoinKrazy AI - A social gaming platform with dual currencies, AI integration, and comprehensive admin controls.
+    
+    ## Authentication
+    All endpoints (except public ones) require JWT Bearer token in Authorization header:
+    ```
+    Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
+    ```
+    
+    ## Currencies
+    - **GC (Gold Coins)**: Free play currency
+    - **SC (Sweeps Coins)**: Real-value currency
+    
+    ## Response Format
+    All responses follow this format:
+    ```json
+    {
+      "success": true,
+      "data": { ... },
+      "error": null
+    }
+    ```
+  version: 1.0.0
+  contact:
+    name: CoinKrazy Support
+    email: support@coinkrazy.io
+  license:
+    name: MIT
+
+servers:
+  - url: https://api.coinkrazy.io
+    description: Production
+  - url: http://localhost:8080
+    description: Development
+
+tags:
+  - name: Authentication
+    description: User registration, login, and profile management
+  - name: Wallet
+    description: Balance queries and transaction history
+  - name: Games
+    description: Game listings, play endpoints, and results
+  - name: Store
+    description: Gold Coin packages and purchases
+  - name: Leaderboards
+    description: Player rankings and competition
+  - name: Achievements
+    description: Achievement system and unlock tracking
+  - name: Challenges
+    description: Daily and weekly challenges
+  - name: Referrals
+    description: Referral program and bonuses
+  - name: Messages
+    description: User messaging and notifications
+  - name: AI
+    description: AI chat and recommendations
+  - name: Admin
+    description: Administrative operations (requires admin role)
+  - name: Public
+    description: Public endpoints (no authentication required)
+
+# ===== AUTHENTICATION =====
+paths:
+  /api/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register new user account
+      description: Creates a new player account with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: player@coinkrazy.io
+                password:
+                  type: string
+                  minLength: 8
+                  example: SecurePassword123!
+      responses:
+        '201':
+          description: Account created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+                      accessToken:
+                        type: string
+                        description: JWT token valid for 24 hours
+                      refreshToken:
+                        type: string
+                        description: Refresh token for getting new access tokens
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Email already exists
+
+  /api/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      description: Authenticates user and returns JWT tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+                      accessToken:
+                        type: string
+                      refreshToken:
+                        type: string
+        '401':
+          description: Invalid email or password
+
+  /api/auth/profile:
+    get:
+      tags:
+        - Authentication
+      summary: Get current user profile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    put:
+      tags:
+        - Authentication
+      summary: Update user profile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  minLength: 3
+                  maxLength: 100
+                avatar_url:
+                  type: string
+                  format: uri
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+
+# ===== WALLET =====
+  /api/wallet:
+    get:
+      tags:
+        - Wallet
+      summary: Get wallet balance
+      description: Retrieves current Gold Coins and Sweeps Coins balance
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Balance retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Wallet'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/wallet/transactions:
+    get:
+      tags:
+        - Wallet
+      summary: Get transaction history
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [purchase, spin_win, spin_loss, bonus, redemption]
+      responses:
+        '200':
+          description: Transaction history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Transaction'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+# ===== GAMES =====
+  /api/games:
+    get:
+      tags:
+        - Games
+      summary: List all games
+      parameters:
+        - name: type
+          in: query
+          description: Filter by game type
+          schema:
+            type: string
+            enum: [slots, poker, bingo, dice, scratch, pull-tabs, sportsbook]
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Games list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Game'
+
+  /api/games/{gameId}:
+    get:
+      tags:
+        - Games
+      summary: Get game details
+      parameters:
+        - name: gameId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Game details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/GameDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+# ===== SLOTS =====
+  /api/slots/spin:
+    post:
+      tags:
+        - Games
+      summary: Spin slot machine
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - gameId
+                - bet
+                - currency
+              properties:
+                gameId:
+                  type: integer
+                bet:
+                  type: number
+                  minimum: 0.01
+                  example: 10.00
+                currency:
+                  type: string
+                  enum: [GC, SC]
+      responses:
+        '200':
+          description: Spin result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      resultId:
+                        type: integer
+                      bet:
+                        type: number
+                      winnings:
+                        type: number
+                      result:
+                        type: string
+                        enum: [win, loss]
+                      multiplier:
+                        type: number
+                      symbols:
+                        type: array
+                        items:
+                          type: string
+                      newBalance:
+                        $ref: '#/components/schemas/Wallet'
+        '400':
+          description: Invalid bet amount or insufficient balance
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/slots/config:
+    get:
+      tags:
+        - Games
+      summary: Get slots configuration
+      parameters:
+        - name: gameId
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Slots config
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      rtp:
+                        type: number
+                        description: Return to Player percentage (90-98%)
+                      minBet:
+                        type: number
+                      maxBet:
+                        type: number
+                      lineCount:
+                        type: integer
+                      symbolCount:
+                        type: integer
+
+# ===== STORE =====
+  /api/store/packs:
+    get:
+      tags:
+        - Store
+      summary: List available Gold Coin packages
+      responses:
+        '200':
+          description: Store packages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StorePack'
+
+  /api/store/purchase:
+    post:
+      tags:
+        - Store
+      summary: Purchase Gold Coins
+      description: Initiates Stripe checkout for Gold Coin purchase
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - packId
+              properties:
+                packId:
+                  type: integer
+      responses:
+        '200':
+          description: Stripe session created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      sessionId:
+                        type: string
+                        description: Stripe Checkout session ID
+                      redirectUrl:
+                        type: string
+                        description: URL to redirect user to Stripe
+
+  /api/store/history:
+    get:
+      tags:
+        - Store
+      summary: Get purchase history
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Purchase history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Purchase'
+
+# ===== LEADERBOARDS =====
+  /api/leaderboards:
+    get:
+      tags:
+        - Leaderboards
+      summary: Get leaderboard rankings
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [weekly_wagered, top_winners, streak]
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [weekly, monthly, alltime]
+            default: weekly
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+      responses:
+        '200':
+          description: Leaderboard data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LeaderboardEntry'
+
+  /api/leaderboards/my-rank:
+    get:
+      tags:
+        - Leaderboards
+      summary: Get current user's leaderboard rank
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User's rank
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/LeaderboardEntry'
+
+# ===== ACHIEVEMENTS =====
+  /api/achievements:
+    get:
+      tags:
+        - Achievements
+      summary: List all achievements
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Achievement list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Achievement'
+
+  /api/achievements/my-achievements:
+    get:
+      tags:
+        - Achievements
+      summary: Get user's unlocked achievements
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Unlocked achievements
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PlayerAchievement'
+
+# ===== CHALLENGES =====
+  /api/challenges:
+    get:
+      tags:
+        - Challenges
+      summary: Get active challenges
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Active challenges
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PlayerChallenge'
+
+  /api/challenges/claim:
+    post:
+      tags:
+        - Challenges
+      summary: Claim challenge reward
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - challengeId
+              properties:
+                challengeId:
+                  type: integer
+      responses:
+        '200':
+          description: Reward claimed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      reward:
+                        type: object
+                      newBalance:
+                        $ref: '#/components/schemas/Wallet'
+        '400':
+          description: Challenge not completed or already claimed
+
+# ===== REFERRALS =====
+  /api/referral/link:
+    get:
+      tags:
+        - Referrals
+      summary: Get or create referral link
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Referral link
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                      link:
+                        type: string
+                      clicks:
+                        type: integer
+                      conversions:
+                        type: integer
+                      earnings:
+                        type: number
+
+  /api/referral/register:
+    post:
+      tags:
+        - Referrals
+      summary: Register with referral code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - referralCode
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+                referralCode:
+                  type: string
+      responses:
+        '201':
+          description: Account created with referral
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+                      accessToken:
+                        type: string
+
+# ===== MESSAGES =====
+  /api/messages/send:
+    post:
+      tags:
+        - Messages
+      summary: Send message
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - toPlayerId
+                - message
+              properties:
+                toPlayerId:
+                  type: integer
+                message:
+                  type: string
+                messageType:
+                  type: string
+                  enum: [dm, support, notification]
+                  default: dm
+      responses:
+        '201':
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Message'
+
+  /api/messages:
+    get:
+      tags:
+        - Messages
+      summary: Get user's messages
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Message list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+
+  /api/messages/unread:
+    get:
+      tags:
+        - Messages
+      summary: Get unread message count
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Unread count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      unreadCount:
+                        type: integer
+
+# ===== AI =====
+  /api/ai/chat:
+    post:
+      tags:
+        - AI
+      summary: Send message to AI
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message
+              properties:
+                message:
+                  type: string
+                  example: "Which slots game gives the best payouts?"
+                sessionId:
+                  type: string
+                  description: Conversation session ID (optional, auto-generated if not provided)
+      responses:
+        '200':
+          description: AI response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      sessionId:
+                        type: string
+                      message:
+                        type: string
+                        description: AI response text
+                      recommendations:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            gameId:
+                              type: integer
+                            gameName:
+                              type: string
+                            reason:
+                              type: string
+                      sentiment:
+                        type: string
+                        enum: [positive, neutral, negative]
+
+  /api/ai/status:
+    get:
+      tags:
+        - AI
+      summary: Get AI agent status
+      responses:
+        '200':
+          description: AI agents status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AIAgent'
+
+# ===== ADMIN =====
+  /api/admin/v2/dashboard/stats:
+    get:
+      tags:
+        - Admin
+      summary: Get admin dashboard statistics
+      security:
+        - BearerAuth: []
+        - AdminRole: []
+      responses:
+        '200':
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      totalPlayers:
+                        type: integer
+                      activePlayers:
+                        type: integer
+                      totalRevenue:
+                        type: number
+                      gmv:
+                        type: number
+                        description: Gross Merchandise Volume (total wagered)
+                      topGame:
+                        type: string
+                      systemHealth:
+                        type: string
+                        enum: [optimal, good, degraded, critical]
+
+  /api/admin/v2/players:
+    get:
+      tags:
+        - Admin
+      summary: List all players
+      security:
+        - BearerAuth: []
+        - AdminRole: []
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [Active, Suspended, Banned]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Players list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AdminPlayer'
+
+  /api/admin/v2/players/{playerId}:
+    get:
+      tags:
+        - Admin
+      summary: Get player details
+      security:
+        - BearerAuth: []
+        - AdminRole: []
+      parameters:
+        - name: playerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Player details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/AdminPlayerDetail'
+
+    put:
+      tags:
+        - Admin
+      summary: Update player (balance, status, etc)
+      security:
+        - BearerAuth: []
+        - AdminRole: []
+      parameters:
+        - name: playerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                gcBalance:
+                  type: number
+                scBalance:
+                  type: number
+                status:
+                  type: string
+                  enum: [Active, Suspended, Banned]
+                vipStatus:
+                  type: string
+      responses:
+        '200':
+          description: Player updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/AdminPlayer'
+
+  /api/admin/v2/games:
+    get:
+      tags:
+        - Admin
+      summary: List all games (admin view)
+      security:
+        - BearerAuth: []
+        - AdminRole: []
+      parameters:
+        - name: enabled
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Games list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AdminGame'
+
+    post:
+      tags:
+        - Admin
+      summary: Create new game
+      security:
+        - BearerAuth: []
+        - AdminRole: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGameInput'
+      responses:
+        '201':
+          description: Game created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/AdminGame'
+
+  /api/admin/v2/games/{gameId}:
+    put:
+      tags:
+        - Admin
+      summary: Update game configuration
+      security:
+        - BearerAuth: []
+        - AdminRole: []
+      parameters:
+        - name: gameId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rtp:
+                  type: number
+                  minimum: 85
+                  maximum: 99
+                minBet:
+                  type: number
+                maxBet:
+                  type: number
+                enabled:
+                  type: boolean
+                featured:
+                  type: boolean
+      responses:
+        '200':
+          description: Game updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/AdminGame'
+
+    delete:
+      tags:
+        - Admin
+      summary: Delete game
+      security:
+        - BearerAuth: []
+        - AdminRole: []
+      parameters:
+        - name: gameId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Game deleted
+
+  /api/admin/v2/games/generate-with-ai:
+    post:
+      tags:
+        - Admin
+      summary: Generate game using AI
+      security:
+        - BearerAuth: []
+        - AdminRole: []
+      description: Use Google Generative AI to create a new game based on prompt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - prompt
+              properties:
+                prompt:
+                  type: string
+                  example: "Create a slots game themed around underwater treasures with aquatic symbols and bonus rounds"
+      responses:
+        '200':
+          description: Game generation in progress
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      gameId:
+                        type: integer
+                      prompt:
+                        type: string
+                      status:
+                        type: string
+                        enum: [generating, created]
+
+  /api/admin/ai-employees:
+    get:
+      tags:
+        - Admin
+      summary: Get AI employees and status
+      security:
+        - BearerAuth: []
+        - AdminRole: []
+      responses:
+        '200':
+          description: AI employees list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AIEmployee'
+
+  /api/admin/ai-status:
+    post:
+      tags:
+        - Admin
+      summary: Update AI agent status
+      security:
+        - BearerAuth: []
+        - AdminRole: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - agentId
+                - status
+              properties:
+                agentId:
+                  type: string
+                status:
+                  type: string
+                  enum: [active, idle, maintenance]
+                currentTask:
+                  type: string
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/AIAgent'
+
+# ===== PUBLIC =====
+  /api/platform/stats:
+    get:
+      tags:
+        - Public
+      summary: Get public platform statistics
+      description: Public information about the platform (no auth required)
+      responses:
+        '200':
+          description: Platform stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      totalPlayers:
+                        type: integer
+                      activePlayers:
+                        type: integer
+                      totalGamesPlayed:
+                        type: integer
+                      jackpotTotal:
+                        type: number
+                      gamesLive:
+                        type: integer
+
+  /api/platform/winners:
+    get:
+      tags:
+        - Public
+      summary: Get recent winners
+      responses:
+        '200':
+          description: Recent winners list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        username:
+                          type: string
+                        amount:
+                          type: string
+                        game:
+                          type: string
+                        time:
+                          type: string
+
+# ===== COMPONENTS & SCHEMAS =====
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Bearer token required for authenticated endpoints
+
+    AdminRole:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Bearer token with admin role required
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        vip_status:
+          type: string
+        kyc_verified:
+          type: boolean
+        status:
+          type: string
+          enum: [Active, Suspended, Banned]
+        created_at:
+          type: string
+          format: date-time
+
+    Wallet:
+      type: object
+      properties:
+        goldCoins:
+          type: number
+          description: Gold Coins balance
+        sweepsCoins:
+          type: number
+          description: Sweeps Coins balance
+        totalWagered:
+          type: number
+        lastUpdated:
+          type: string
+          format: date-time
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [purchase, spin_win, spin_loss, bonus, redemption]
+        gcAmount:
+          type: number
+        scAmount:
+          type: number
+        description:
+          type: string
+        balanceAfterGc:
+          type: number
+        balanceAfterSc:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+
+    Game:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+          enum: [slots, poker, bingo, dice, scratch, pull-tabs, sportsbook]
+        category:
+          type: string
+        provider:
+          type: string
+        imageUrl:
+          type: string
+          format: uri
+        thumbnail:
+          type: string
+          format: uri
+        enabled:
+          type: boolean
+        featured:
+          type: boolean
+        rtp:
+          type: number
+          description: Return to Player percentage
+
+    GameDetail:
+      allOf:
+        - $ref: '#/components/schemas/Game'
+        - type: object
+          properties:
+            description:
+              type: string
+            minBet:
+              type: number
+            maxBet:
+              type: number
+            launchUrl:
+              type: string
+              format: uri
+            rules:
+              type: string
+            paylines:
+              type: integer
+            volatility:
+              type: string
+              enum: [low, medium, high]
+
+    StorePack:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        goldCoins:
+          type: integer
+        bonusSc:
+          type: number
+          description: Free Sweeps Coins bonus
+        priceUsd:
+          type: number
+        featured:
+          type: boolean
+        stripeProductId:
+          type: string
+
+    Purchase:
+      type: object
+      properties:
+        id:
+          type: integer
+        packTitle:
+          type: string
+        goldCoins:
+          type: integer
+        priceUsd:
+          type: number
+        status:
+          type: string
+          enum: [pending, completed, failed]
+        createdAt:
+          type: string
+          format: date-time
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+        playerId:
+          type: integer
+        username:
+          type: string
+        points:
+          type: number
+        avatar:
+          type: string
+          format: uri
+        isCurrentUser:
+          type: boolean
+
+    Achievement:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        icon:
+          type: string
+          format: uri
+        category:
+          type: string
+        points:
+          type: integer
+        requirements:
+          type: object
+
+    PlayerAchievement:
+      allOf:
+        - $ref: '#/components/schemas/Achievement'
+        - type: object
+          properties:
+            unlockedAt:
+              type: string
+              format: date-time
+
+    Challenge:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        rewardType:
+          type: string
+          enum: [gc, sc]
+        rewardAmount:
+          type: number
+        progressTarget:
+          type: integer
+
+    PlayerChallenge:
+      allOf:
+        - $ref: '#/components/schemas/Challenge'
+        - type: object
+          properties:
+            progress:
+              type: integer
+            completed:
+              type: boolean
+            claimed:
+              type: boolean
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: integer
+        fromPlayerId:
+          type: integer
+        fromUsername:
+          type: string
+        toPlayerId:
+          type: integer
+        messageText:
+          type: string
+        messageType:
+          type: string
+          enum: [dm, support, notification]
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    AIAgent:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+        status:
+          type: string
+          enum: [active, idle, busy, offline]
+        currentTask:
+          type: string
+        totalConversations:
+          type: integer
+        averageResponseTime:
+          type: integer
+          description: milliseconds
+        lastActivityAt:
+          type: string
+          format: date-time
+        uptime:
+          type: number
+          description: percentage
+        performanceScore:
+          type: number
+          description: 0-100
+
+    AdminPlayer:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        username:
+          type: string
+        gcBalance:
+          type: number
+        scBalance:
+          type: number
+        totalWagered:
+          type: number
+        vipStatus:
+          type: string
+        status:
+          type: string
+        kycVerified:
+          type: boolean
+        lastLogin:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    AdminPlayerDetail:
+      allOf:
+        - $ref: '#/components/schemas/AdminPlayer'
+        - type: object
+          properties:
+            transactions:
+              type: array
+              items:
+                $ref: '#/components/schemas/Transaction'
+            achievements:
+              type: array
+              items:
+                $ref: '#/components/schemas/Achievement'
+            gameHistory:
+              type: array
+              items:
+                type: object
+                properties:
+                  gameId:
+                    type: integer
+                  gameName:
+                    type: string
+                  bet:
+                    type: number
+                  winnings:
+                    type: number
+                  createdAt:
+                    type: string
+                    format: date-time
+
+    AdminGame:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+        rtp:
+          type: number
+        minBet:
+          type: number
+        maxBet:
+          type: number
+        enabled:
+          type: boolean
+        featured:
+          type: boolean
+        totalPlays:
+          type: integer
+        totalWagered:
+          type: number
+        totalPaid:
+          type: number
+        lastPlayedAt:
+          type: string
+          format: date-time
+
+    CreateGameInput:
+      type: object
+      required:
+        - name
+        - type
+        - rtp
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [slots, poker, bingo, dice, scratch, pull-tabs, sportsbook]
+        category:
+          type: string
+        rtp:
+          type: number
+          minimum: 85
+          maximum: 99
+        minBet:
+          type: number
+          default: 0.01
+        maxBet:
+          type: number
+          default: 1000
+        description:
+          type: string
+        imageUrl:
+          type: string
+        launchUrl:
+          type: string
+        enabled:
+          type: boolean
+          default: true
+
+    AIEmployee:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+        status:
+          type: string
+          enum: [active, idle, maintenance]
+        duties:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+        hasMore:
+          type: boolean
+
+  responses:
+    BadRequest:
+      description: Bad request (invalid input)
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              error:
+                type: string
+
+    Unauthorized:
+      description: Unauthorized (missing or invalid token)
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              error:
+                type: string
+
+    Forbidden:
+      description: Forbidden (insufficient permissions)
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              error:
+                type: string
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              error:
+                type: string
