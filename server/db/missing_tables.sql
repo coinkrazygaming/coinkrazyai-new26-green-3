@@ -403,9 +403,10 @@ CREATE TABLE IF NOT EXISTS ai_conversation_history (
     context_tokens INTEGER DEFAULT 0,
     response_time_ms INTEGER,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX player_session_idx (player_id, session_id)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_ai_conversation_player_session ON ai_conversation_history(player_id, session_id);
 
 CREATE TABLE IF NOT EXISTS ai_conversation_sessions (
     id SERIAL PRIMARY KEY,

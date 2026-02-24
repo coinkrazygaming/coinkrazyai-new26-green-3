@@ -1280,12 +1280,6 @@ export const getPlayerSessions = async (playerId: number, limit = 20) => {
   );
 };
 
-export const getAIEmployees = async () => {
-  return query(
-    `SELECT * FROM ai_employees ORDER BY name ASC`
-  );
-};
-
 export const getAIEmployeeById = async (id: string) => {
   return query(
     `SELECT * FROM ai_employees WHERE id = $1`,
