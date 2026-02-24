@@ -112,7 +112,7 @@ function calculateWin(reels: SymbolType[][], bet: number): { win: number; descri
     }
 
     // Calculate payout for this line
-    if (matchCount >= 3 && baseSymbol !== 'wild' && baseSymbol !== 'collect') {
+    if (matchCount >= 3 && baseSymbol !== 'wild' && baseSymbol !== 'bonus') {
       const symbolIndex = Math.min(matchCount - 3, 4); // Map 3-7+ matches to 0-4 index
       const payout = SYMBOL_PAYOUTS[baseSymbol]?.[symbolIndex] || 0;
       const lineWin = payout * bet;

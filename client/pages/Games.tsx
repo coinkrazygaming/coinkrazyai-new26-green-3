@@ -265,7 +265,7 @@ const Games = () => {
                     className="h-full border-2 border-cyan-500/50 bg-gradient-to-br from-cyan-500/10 via-purple-500/10 to-transparent hover:border-cyan-500 transition-all duration-300 overflow-hidden shadow-lg hover:shadow-cyan-500/30 hover:scale-105 cursor-pointer group"
                     onClick={() => {
                       setSelectedGame(game);
-                      if (game.is_branded_popup) {
+                      if ((game as any).is_branded_popup) {
                         setIsBrandedModalOpen(true);
                       } else {
                         launchGame(game);
@@ -607,7 +607,7 @@ const Games = () => {
       {selectedGame && isBrandedModalOpen && (
         <BrandedGameModal
           isOpen={isBrandedModalOpen}
-          game={selectedGame}
+          game={selectedGame as any}
           onClose={() => {
             setIsBrandedModalOpen(false);
             setSelectedGame(null);

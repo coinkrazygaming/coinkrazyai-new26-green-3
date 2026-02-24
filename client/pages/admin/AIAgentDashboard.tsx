@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Activity, Zap, TrendingUp, AlertCircle, Refresh2, Settings } from 'lucide-react';
+import { Activity, Zap, TrendingUp, AlertCircle, RefreshCw, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AIAgent {
@@ -99,7 +99,7 @@ export const AIAgentDashboard = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">AI Agent Dashboard</h1>
         <Button onClick={loadAgentsData} size="sm" variant="outline">
-          <Refresh2 className="w-4 h-4 mr-2" />
+          <RefreshCw className="w-4 h-4 mr-2" />
           Refresh
         </Button>
       </div>

@@ -70,8 +70,8 @@ export const AIGameEditor: React.FC = () => {
       const response = await apiCall('/admin/v2/games', {
         headers: { 'Content-Type': 'application/json' },
       });
-      if (response.success) {
-        setGames(response.data || []);
+      if ((response as any).success) {
+        setGames((response as any).data || []);
       }
     } catch (error) {
       console.error('Failed to fetch games:', error);
@@ -95,8 +95,8 @@ export const AIGameEditor: React.FC = () => {
         body: JSON.stringify({ prompt: aiPrompt }),
       });
 
-      if (response.success && response.data) {
-        const generatedGame = response.data;
+      if ((response as any).success && (response as any).data) {
+        const generatedGame = (response as any).data;
         setFormData({
           name: generatedGame.name || '',
           slug: generatedGame.slug || generatedGame.name?.toLowerCase().replace(/\s+/g, '-') || '',
@@ -138,8 +138,8 @@ export const AIGameEditor: React.FC = () => {
         body: JSON.stringify({ prompt: aiPrompt }),
       });
 
-      if (response.success) {
-        toast.success(`✨ Game "${response.data.name}" created automatically!`);
+      if ((response as any).success) {
+        toast.success(`✨ Game "${(response as any).data.name}" created automatically!`);
         await fetchGames();
         setAiPrompt('');
       }
@@ -193,7 +193,7 @@ export const AIGameEditor: React.FC = () => {
         }),
       });
 
-      if (response.success) {
+      if ((response as any).success) {
         toast.success(selectedGame ? 'Game updated!' : 'Game created!');
         await fetchGames();
         resetForm();

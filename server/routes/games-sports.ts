@@ -383,7 +383,7 @@ export const getSportsbookStats: RequestHandler = async (req, res) => {
 export const ingestGameData: RequestHandler = async (req, res) => {
   try {
     const gameIdParam = req.params.gameId;
-    const gameId = parseInt(gameIdParam, 10);
+    const gameId = parseInt(Array.isArray(gameIdParam) ? gameIdParam[0] : gameIdParam, 10);
     const { data } = req.body;
 
     // Validate gameId

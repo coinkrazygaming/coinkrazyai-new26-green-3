@@ -66,7 +66,7 @@ const CoinKrazyChiliCoins = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [gameContainer, setGameContainer] = useState<HTMLDivElement | null>(null);
   const [showHelpModal, setShowHelpModal] = useState(false);
-  const [balanceDisplay, setBalanceDisplay] = useState(wallet?.sc_balance ?? 0);
+  const [balanceDisplay, setBalanceDisplay] = useState(wallet?.sweepsCoins ?? 0);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -86,8 +86,8 @@ const CoinKrazyChiliCoins = () => {
 
   // Update balance display
   useEffect(() => {
-    setBalanceDisplay(wallet?.sc_balance ?? 0);
-  }, [wallet?.sc_balance]);
+    setBalanceDisplay(wallet?.sweepsCoins ?? 0);
+  }, [wallet?.sweepsCoins]);
 
   const initializeGame = () => {
     const newGrid: GameSymbol[][] = Array(GRID_SIZE).fill(null).map(() =>
@@ -150,16 +150,6 @@ const CoinKrazyChiliCoins = () => {
     try {
       // Debit wallet immediately
       setBalanceDisplay(prev => prev - currentBet);
-      
-      // Call debit function from wallet hook
-      if (wallet?.debitScWallet) {
-        await wallet.debitScWallet(currentBet);
-      }
-
-      // Log transaction
-      if (typeof logTransaction === 'function') {
-        logTransaction('CoinKrazy ChiliCoins', currentBet, 'debit', `Spin on CoinKrazy ChiliCoins`);
-      }
 
       setGameState(prev => ({
         ...prev,
@@ -358,26 +348,15 @@ const CoinKrazyChiliCoins = () => {
   // Handle win claim
   const handleClaimWin = useCallback(async () => {
     try {
-      // Add win to wallet
-      if (typeof addToScWallet === 'function') {
-        await addToScWallet(winAmount);
-      } else if (wallet?.addToScWallet) {
-        await wallet.addToScWallet(winAmount);
-      }
-
-      // Log win transaction
-      if (typeof logTransaction === 'function') {
-        logTransaction('CoinKrazy ChiliCoins', winAmount, 'credit', `Win on CoinKrazy ChiliCoins`);
-      }
-
+      // Update balance display and refresh wallet from server
       setBalanceDisplay(prev => prev + winAmount);
       await refreshWallet?.();
       
       setShowWinModal(false);
       initializeGame();
-      
+
       toast.success(`Won ${winAmount} SC!`);
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Error claiming win');
       console.error('Claim error:', error);
     }

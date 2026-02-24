@@ -170,7 +170,7 @@ const CoinKrazyThunder = () => {
   // Handle spin
   const handleSpin = useCallback(async () => {
     if (gameState.isSpinning) return;
-    if (!wallet || !user || wallet.sc_balance < currentBet) {
+    if (!wallet || !user || wallet.sweepsCoins < currentBet) {
       toast.error('Insufficient SC balance');
       return;
     }
@@ -319,7 +319,7 @@ const CoinKrazyThunder = () => {
           <div className="mb-6 flex justify-between">
             <div>
               <p className="text-yellow-400 text-sm">Balance</p>
-              <p className="text-2xl font-bold text-white">{wallet?.sc_balance.toFixed(2) || '0.00'} SC</p>
+              <p className="text-2xl font-bold text-white">{wallet?.sweepsCoins.toFixed(2) || '0.00'} SC</p>
             </div>
             <div>
               <p className="text-yellow-400 text-sm">Current Bet</p>
@@ -329,10 +329,10 @@ const CoinKrazyThunder = () => {
 
           <button
             onClick={handleSpin}
-            disabled={gameState.isSpinning || !wallet || wallet.sc_balance < currentBet}
+            disabled={gameState.isSpinning || !wallet || wallet.sweepsCoins < currentBet}
             className={cn(
               'w-full py-4 px-6 rounded-xl font-bold text-lg transition-all',
-              gameState.isSpinning || !wallet || wallet.sc_balance < currentBet
+              gameState.isSpinning || !wallet || wallet.sweepsCoins < currentBet
                 ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                 : 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-black hover:shadow-2xl hover:shadow-yellow-400'
             )}
