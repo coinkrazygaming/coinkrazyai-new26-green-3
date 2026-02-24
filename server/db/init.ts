@@ -156,6 +156,56 @@ export const initializeDatabase = async () => {
       console.log('[DB] Schema check for games.embed_url:', err.message?.substring(0, 100));
     }
 
+    // Ensure api_keys table has all required columns
+    try {
+      await query(`ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS key_name VARCHAR(255)`);
+      console.log('[DB] Verified key_name column in api_keys');
+    } catch (err: any) {
+      console.log('[DB] Schema check for api_keys.key_name:', err.message?.substring(0, 100));
+    }
+
+    try {
+      await query(`ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS key_hash VARCHAR(255) UNIQUE`);
+      console.log('[DB] Verified key_hash column in api_keys');
+    } catch (err: any) {
+      console.log('[DB] Schema check for api_keys.key_hash:', err.message?.substring(0, 100));
+    }
+
+    try {
+      await query(`ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS permissions JSONB`);
+      console.log('[DB] Verified permissions column in api_keys');
+    } catch (err: any) {
+      console.log('[DB] Schema check for api_keys.permissions:', err.message?.substring(0, 100));
+    }
+
+    try {
+      await query(`ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS rate_limit INTEGER DEFAULT 100`);
+      console.log('[DB] Verified rate_limit column in api_keys');
+    } catch (err: any) {
+      console.log('[DB] Schema check for api_keys.rate_limit:', err.message?.substring(0, 100));
+    }
+
+    try {
+      await query(`ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'active'`);
+      console.log('[DB] Verified status column in api_keys');
+    } catch (err: any) {
+      console.log('[DB] Schema check for api_keys.status:', err.message?.substring(0, 100));
+    }
+
+    try {
+      await query(`ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS last_used_at TIMESTAMP`);
+      console.log('[DB] Verified last_used_at column in api_keys');
+    } catch (err: any) {
+      console.log('[DB] Schema check for api_keys.last_used_at:', err.message?.substring(0, 100));
+    }
+
+    try {
+      await query(`ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP`);
+      console.log('[DB] Verified expires_at column in api_keys');
+    } catch (err: any) {
+      console.log('[DB] Schema check for api_keys.expires_at:', err.message?.substring(0, 100));
+    }
+
     // Add launch_url column to games table if it doesn't exist
     try {
       await query(`ALTER TABLE games ADD COLUMN IF NOT EXISTS launch_url VARCHAR(500)`);
