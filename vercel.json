@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "client/**/*",  // Adjust if your frontend folder is different
+      "use": "@vercel/static-build",
+      "config": { "distDir": "client/dist" }  // Vite default output
+    },
+    {
+      "src": "server/node-build.ts",  // Or .mjs / index.ts if that's entry
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/server/node-build.ts" },
+    { "src": "/(.*)", "dest": "/client/dist/$1" }
+  ]
+}
