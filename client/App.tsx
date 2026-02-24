@@ -36,6 +36,7 @@ import Community from "./pages/Community";
 import PoolShark from "./pages/PoolShark";
 import Referrals from "./pages/Referrals";
 import VIP from "./pages/VIP";
+import CoinKrazyCoinUp from "./pages/CoinKrazyCoinUp";
 
 const queryClient = new QueryClient();
 
@@ -185,6 +186,14 @@ const AppRoutes = () => (
       element={
         <Layout>
           <VIP />
+        </Layout>
+      }
+    />
+    <Route
+      path="/coin-krazy-coin-up"
+      element={
+        <Layout>
+          <CoinKrazyCoinUp />
         </Layout>
       }
     />
