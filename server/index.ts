@@ -414,6 +414,9 @@ import {
 import { getChallenges, claimChallengeReward } from "./routes/challenges";
 import { getPlatformStats, getRecentWinners } from "./routes/platform";
 import { handleCoinKrazyThunderSpin, handleGetThunderStats } from "./routes/coinkrazy-thunder";
+import { handleCoinKrazyCoinUpSpin } from "./routes/coinkrazy-coinup";
+import { handleCoinKrazyCoinHotSpin } from "./routes/coinkrazy-coinhot";
+import { handleCoinKrazy4WolfsSpin } from "./routes/coinkrazy-4wolfs";
 import {
   listPlayerTickets,
   createPlayerTicket,
@@ -555,9 +558,12 @@ export function createServer() {
   app.get("/api/admin/v2/games/configs", verifyAdmin, handleGetAllGameConfigs);
   app.put("/api/admin/v2/games/:gameId/max-win", verifyAdmin, handleUpdateGameMaxWin);
 
-  // ===== COINKRAZY-THUNDER GAME ROUTES =====
+  // ===== COINKRAZY GAME ROUTES =====
+  app.post("/api/coinkrazy-coinup/spin", verifyPlayer, handleCoinKrazyCoinUpSpin);
+  app.post("/api/coinkrazy-coinhot/spin", verifyPlayer, handleCoinKrazyCoinHotSpin);
   app.post("/api/coinkrazy-thunder/spin", verifyPlayer, handleCoinKrazyThunderSpin);
   app.get("/api/coinkrazy-thunder/stats", verifyPlayer, handleGetThunderStats);
+  app.post("/api/coinkrazy-4wolfs/spin", verifyPlayer, handleCoinKrazy4WolfsSpin);
 
   // ===== ADMIN ROUTES =====
   app.post("/api/admin/login", handleAdminLogin);

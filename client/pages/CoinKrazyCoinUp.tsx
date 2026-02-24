@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useWallet } from '@/hooks/use-wallet';
-import { wallet as walletApi } from '@/lib/api';
+import { coinkrazyCoinUp } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
 import { ChevronLeft, Settings, RotateCw, Volume2, VolumeX, Maximize2, Home, HelpCircle } from 'lucide-react';
@@ -249,20 +249,17 @@ const CoinKrazyCoinUp = () => {
       setGameState(prev => ({ ...prev, isSpinning: true }));
       playSound('spin');
 
-      // Update wallet via API
-      const newScBalance = wallet.sweepsCoins - currentBet;
-      await walletApi.updateBalance(0, -currentBet);
-      await refreshWallet();
+      // Call the backend spin endpoint
+      const response = await coinkrazyCoinUp.spin(currentBet, user!.id);
 
-      // Simulate reel spin animation
-      const newReels = generateReels();
-      setReels(newReels);
+      // Set the reels from the API response
+      setReels(response.reels);
 
       // Simulate spin animation delay
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Calculate win
-      const winAmount = calculateWin(newReels);
+      // Get the win from the response
+      const winAmount = response.win || 0;
 
       // Log the transaction
       console.log(`[CoinKrazy-CoinUp] Spin: Bet=${currentBet} SC, Win=${winAmount} SC`);
@@ -287,6 +284,9 @@ const CoinKrazyCoinUp = () => {
           totalWins: prev.totalWins + winAmount,
         }));
       }
+
+      // Refresh wallet to show new balance
+      await refreshWallet();
     } catch (error) {
       console.error('Spin error:', error);
       toast.error('Spin failed. Please try again.');
@@ -298,14 +298,7 @@ const CoinKrazyCoinUp = () => {
   // Handle win claim
   const handleClaimWin = useCallback(async () => {
     try {
-      // Cap the win at MAX_WIN_PER_SPIN
-      const cappedWin = Math.min(winAmount, MAX_WIN_PER_SPIN);
-
-      // Credit win to wallet
-      await walletApi.updateBalance(0, cappedWin);
-      await refreshWallet();
-
-      toast.success(`Won ${cappedWin} SC!`, {
+      toast.success(`Won ${winAmount} SC!`, {
         description: 'Your winnings have been credited to your wallet.',
       });
 
@@ -315,7 +308,7 @@ const CoinKrazyCoinUp = () => {
       console.error('Claim win error:', error);
       toast.error('Failed to claim win. Please try again.');
     }
-  }, [winAmount, refreshWallet]);
+  }, [winAmount]);
 
   // Handle share
   const handleShare = useCallback((platform: string) => {

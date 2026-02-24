@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { apiCall } from '@/lib/api';
+import { coinkrazyCoinHot } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
 
 interface Particle {
   x: number;
@@ -48,7 +49,8 @@ export const GameCanvas: React.FC<{
   onWin: (amount: number) => void;
   onBet: (amount: number) => void;
   maxBet?: number;
-}> = ({ initialBalance, onWin, onBet, maxBet = 5 }) => {
+  userId?: number;
+}> = ({ initialBalance, onWin, onBet, maxBet = 5, userId = 0 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
   const animationRef = useRef<number>();
@@ -347,13 +349,7 @@ export const GameCanvas: React.FC<{
 
     try {
       // Call backend API to process spin
-      const result = await apiCall('/api/games/spin', {
-        method: 'POST',
-        body: JSON.stringify({
-          game_id: 1, // CoinKrazy-CoinHot game ID (will be set in DB)
-          bet_amount: gameState.selectedBet,
-        }),
-      });
+      const result = await coinkrazyCoinHot.spin(gameState.selectedBet, userId);
 
       onBet(gameState.selectedBet);
 

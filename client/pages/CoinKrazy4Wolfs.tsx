@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useWallet } from '@/hooks/use-wallet';
-import { coinkrazyThunder } from '@/lib/api'; // Use Thunder API as base (same structure)
+import { coinkrazy4Wolfs } from '@/lib/api'; // Use Thunder API as base (same structure)
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
 import { ChevronLeft, Volume2, VolumeX, Maximize2, Home, HelpCircle, Share2 } from 'lucide-react';
@@ -180,8 +180,8 @@ const CoinKrazy4Wolfs = () => {
       // Play wolf howl sound
       playWolfHowl();
 
-      // Call the backend spin API (using Thunder endpoint as placeholder)
-      const response = await coinkrazyThunder.spin(currentBet, user.id);
+      // Call the backend spin API
+      const response = await coinkrazy4Wolfs.spin(currentBet, user.id);
 
       // Set the reels from the API response
       setReels(response.reels);

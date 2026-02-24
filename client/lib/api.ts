@@ -254,7 +254,39 @@ export const games = {
   },
 };
 
-// ===== COINKRAZY-THUNDER GAME =====
+// ===== COINKRAZY GAMES =====
+export const coinkrazyCoinUp = {
+  spin: async (betAmount: number, playerId: number) => {
+    return apiCall<any>('/coinkrazy-coinup/spin', {
+      method: 'POST',
+      body: JSON.stringify({ betAmount, playerId }),
+    });
+  },
+
+  updateBalance: async (newBalance: number) => {
+    return apiCall<any>('/wallet/update', {
+      method: 'POST',
+      body: JSON.stringify({ gc_amount: 0, sc_amount: newBalance }),
+    });
+  },
+};
+
+export const coinkrazyCoinHot = {
+  spin: async (betAmount: number, playerId: number) => {
+    return apiCall<any>('/coinkrazy-coinhot/spin', {
+      method: 'POST',
+      body: JSON.stringify({ betAmount, playerId }),
+    });
+  },
+
+  updateBalance: async (newBalance: number) => {
+    return apiCall<any>('/wallet/update', {
+      method: 'POST',
+      body: JSON.stringify({ gc_amount: 0, sc_amount: newBalance }),
+    });
+  },
+};
+
 export const coinkrazyThunder = {
   spin: async (betAmount: number, playerId: number) => {
     return apiCall<any>('/coinkrazy-thunder/spin', {
@@ -265,6 +297,22 @@ export const coinkrazyThunder = {
 
   getStats: async (playerId: number) => {
     return apiCall<any>(`/coinkrazy-thunder/stats?playerId=${playerId}`);
+  },
+
+  updateBalance: async (newBalance: number) => {
+    return apiCall<any>('/wallet/update', {
+      method: 'POST',
+      body: JSON.stringify({ gc_amount: 0, sc_amount: newBalance }),
+    });
+  },
+};
+
+export const coinkrazy4Wolfs = {
+  spin: async (betAmount: number, playerId: number) => {
+    return apiCall<any>('/coinkrazy-4wolfs/spin', {
+      method: 'POST',
+      body: JSON.stringify({ betAmount, playerId }),
+    });
   },
 
   updateBalance: async (newBalance: number) => {

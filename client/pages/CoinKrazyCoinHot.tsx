@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { GameCanvas } from '@/components/CoinKrazyCoinHot/GameCanvas';
-import { apiCall } from '@/lib/api';
+import { coinkrazyCoinHot } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
 
 interface WinPopupProps {
   isOpen: boolean;
@@ -160,6 +161,7 @@ const WinPopup: React.FC<WinPopupProps> = ({
 };
 
 export const CoinKrazyCoinHotPage: React.FC = () => {
+  const { user } = useAuth();
   const [scBalance, setScBalance] = useState<number>(0);
   const [playerUsername, setPlayerUsername] = useState<string>('Player');
   const [showWinPopup, setShowWinPopup] = useState(false);
@@ -167,26 +169,14 @@ export const CoinKrazyCoinHotPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch player balance on mount
+  // Use user data from auth context
   useEffect(() => {
-    const fetchPlayerData = async () => {
-      try {
-        setIsLoading(true);
-        const response = await apiCall('/api/player/profile');
-        if (response.sc_balance !== undefined) {
-          setScBalance(response.sc_balance);
-          setPlayerUsername(response.username || 'Player');
-        }
-      } catch (err) {
-        console.error('Failed to fetch player data:', err);
-        setError('Failed to load player data');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchPlayerData();
-  }, []);
+    if (user) {
+      setScBalance(user.sc_balance || 0);
+      setPlayerUsername(user.username || 'Player');
+      setIsLoading(false);
+    }
+  }, [user]);
 
   const handleBet = async (amount: number) => {
     // Bet is deducted immediately when processing spin on backend
@@ -249,6 +239,7 @@ export const CoinKrazyCoinHotPage: React.FC = () => {
         onWin={handleWin}
         onBet={handleBet}
         maxBet={5}
+        userId={user?.id || 0}
       />
 
       <WinPopup
