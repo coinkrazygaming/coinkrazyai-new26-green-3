@@ -11,6 +11,14 @@ import { RecentWinners } from '@/components/RecentWinners';
 
 const CASINO_CATEGORIES = [
   {
+    title: 'CoinKrazy-CoinUp',
+    desc: '⚡ Lightning slots with up to 10 SC max wins',
+    icon: Zap,
+    path: '/coin-krazy-coin-up',
+    color: 'from-cyan-600 to-purple-700',
+    count: 'NEW! ⚡'
+  },
+  {
     title: 'Slots & Reels',
     desc: 'High-speed action with massive jackpots',
     icon: Zap,

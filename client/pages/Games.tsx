@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Search, Filter, Grid, List as ListIcon, ChevronDown } from 'lucide-react';
+import { Loader2, Search, Filter, Grid, List as ListIcon, ChevronDown, Zap, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { games } from '@/lib/api';
 import { ImportedGameCard } from '@/components/slots/ImportedGameCard';
@@ -212,6 +212,47 @@ const Games = () => {
         <p className="text-muted-foreground">
           Explore our collection of {allGames.length} games from various providers
         </p>
+      </div>
+
+      {/* Featured Games Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">⚡ Featured Games</h2>
+          <Badge className="bg-gradient-to-r from-cyan-500 to-purple-500">NEW</Badge>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* CoinKrazy-CoinUp Featured Card */}
+          <Link to="/coin-krazy-coin-up" className="group">
+            <Card className="h-full border-2 border-cyan-500/50 bg-gradient-to-br from-cyan-500/10 via-purple-500/10 to-transparent hover:border-cyan-500 transition-all duration-300 overflow-hidden shadow-lg hover:shadow-cyan-500/30 hover:scale-105">
+              <div className="h-40 bg-gradient-to-br from-cyan-600 to-purple-700 flex items-center justify-center relative overflow-hidden">
+                <Zap className="w-20 h-20 text-white/30 absolute -right-4 -bottom-4 rotate-12 group-hover:rotate-0 transition-transform duration-500" />
+                <Zap className="w-12 h-12 text-white relative z-10 drop-shadow-2xl group-hover:scale-110 transition-transform" />
+              </div>
+              <CardContent className="p-6 space-y-3">
+                <div>
+                  <h3 className="font-black text-xl">CoinKrazy-CoinUp</h3>
+                  <p className="text-xs text-muted-foreground font-semibold mt-1">Lightning Edition 🌩️</p>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  High-energy 3×3 lightning slots with glowing coins and Coin UP bonuses
+                </p>
+                <div className="space-y-1 pt-2 border-t border-cyan-500/30">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Max Bet</span>
+                    <span className="font-bold text-cyan-400">5 SC</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Max Win</span>
+                    <span className="font-bold text-green-400">10 SC</span>
+                  </div>
+                </div>
+                <div className="pt-2 flex items-center text-cyan-400 font-black text-xs uppercase tracking-widest group-hover:gap-2 transition-all">
+                  Play Now <ChevronRight className="w-4 h-4" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
       </div>
 
       {/* Game Type Tabs */}
