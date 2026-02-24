@@ -89,7 +89,7 @@ const Games = () => {
       // Calculate featured games - similar to Index.tsx
       let featured = [];
 
-      // Priority 1: AI-Generated Games from CoinKrazy Studios
+      // Priority 1: ALL AI-Generated Games from CoinKrazy Studios (Featured First!)
       const aiGeneratedGames = enabledGames.filter((g: Game) => g.provider === 'CoinKrazy Studios');
       featured = featured.concat(aiGeneratedGames);
 
