@@ -1,4 +1,4 @@
-import { crypto } from 'node:crypto';
+import crypto from 'node:crypto';
 
 /**
  * Production-ready RNG Service for Game Randomization
