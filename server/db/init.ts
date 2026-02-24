@@ -404,25 +404,81 @@ const seedDatabase = async () => {
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
            ON CONFLICT (slug) DO UPDATE SET updated_at = CURRENT_TIMESTAMP`,
           [
-            'CoinKrazy-CoinHot: Inferno Edition',
-            'coinkrazy-coinhot-inferno',
+            'CoinKrazy-Hot',
+            'coinkrazy-hot-inferno',
             'Slots',
             'slots',
             'CoinKrazy Studios',
-            96.0,
+            96.8,
             'High',
-            'Scorching hot slot action with massive fire animations! Ignite the reels and win up to 10 SC with the CoinKrazy-CoinHot: Inferno Edition!',
+            'Blaze through reels with CoinKrazy-Hot! Inferno-themed slots with massive multipliers and epic bonus features!',
             'https://images.unsplash.com/photo-1538895217697-2dae11eafa72?w=400&h=300&fit=crop',
             'https://images.unsplash.com/photo-1538895217697-2dae11eafa72?w=200&h=150&fit=crop',
-            '/coin-krazy-coin-hot',
-            '/coin-krazy-coin-hot',
+            '/coin-krazy-hot',
+            '/coin-krazy-hot',
             true,
-            false
+            true
           ]
         );
-        console.log('[DB] Added CoinKrazy-CoinHot game');
+        console.log('[DB] Added CoinKrazy-Hot game');
       } catch (err: any) {
-        console.log('[DB] CoinKrazy-CoinHot game already exists or error:', err.message?.substring(0, 100));
+        console.log('[DB] CoinKrazy-Hot game already exists or error:', err.message?.substring(0, 100));
+      }
+
+      // Add CoinKrazy-Thunder as a featured game
+      try {
+        await query(
+          `INSERT INTO games (name, slug, category, type, provider, rtp, volatility, description, image_url, thumbnail, embed_url, launch_url, enabled, is_branded_popup, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+           ON CONFLICT (slug) DO UPDATE SET updated_at = CURRENT_TIMESTAMP`,
+          [
+            'CoinKrazy-Thunder',
+            'coinkrazy-thunder-elite',
+            'Slots',
+            'slots',
+            'CoinKrazy Studios',
+            97.0,
+            'High',
+            'Strike it big with CoinKrazy-Thunder! Experience electrifying spins with thunderbolt wilds and powerful jackpot features!',
+            'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=400&h=300&fit=crop',
+            'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=200&h=150&fit=crop',
+            '/coin-krazy-thunder',
+            '/coin-krazy-thunder',
+            true,
+            true
+          ]
+        );
+        console.log('[DB] Added CoinKrazy-Thunder game');
+      } catch (err: any) {
+        console.log('[DB] CoinKrazy-Thunder game already exists or error:', err.message?.substring(0, 100));
+      }
+
+      // Add CoinKrazy-4Wolfs as a featured game
+      try {
+        await query(
+          `INSERT INTO games (name, slug, category, type, provider, rtp, volatility, description, image_url, thumbnail, embed_url, launch_url, enabled, is_branded_popup, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+           ON CONFLICT (slug) DO UPDATE SET updated_at = CURRENT_TIMESTAMP`,
+          [
+            'CoinKrazy-4Wolfs',
+            'coinkrazy-4wolfs-wild',
+            'Slots',
+            'slots',
+            'CoinKrazy Studios',
+            96.5,
+            'High',
+            'Hunt for riches with CoinKrazy-4Wolfs! Pack your paylines with wild beasts and unleash massive winning combinations!',
+            'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=400&h=300&fit=crop',
+            'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=200&h=150&fit=crop',
+            '/coin-krazy-4wolfs',
+            '/coin-krazy-4wolfs',
+            true,
+            true
+          ]
+        );
+        console.log('[DB] Added CoinKrazy-4Wolfs game');
+      } catch (err: any) {
+        console.log('[DB] CoinKrazy-4Wolfs game already exists or error:', err.message?.substring(0, 100));
       }
 
       // Seed bonuses

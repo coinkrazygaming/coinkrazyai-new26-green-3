@@ -86,23 +86,22 @@ const Games = () => {
       const enabledGames = gamesData.filter((g: Game) => g.enabled !== false);
       setAllGames(enabledGames);
 
-      // Calculate featured games - similar to Index.tsx
+      // Calculate featured games - CoinKrazy Games Priority!
       let featured = [];
 
-      // Priority 1: ALL AI-Generated Games from CoinKrazy Studios (Featured First!)
-      const aiGeneratedGames = enabledGames.filter((g: Game) => g.provider === 'CoinKrazy Studios');
+      // Priority 1: Specific CoinKrazy Games (in order)
+      const coinKrazyGameNames = ['CoinKrazy-CoinUp', 'CoinKrazy-Hot', 'CoinKrazy-Thunder', 'CoinKrazy-4Wolfs'];
+      const coinKrazyGames = coinKrazyGameNames
+        .map(name => enabledGames.find((g: Game) => g.name === name))
+        .filter((g): g is Game => g !== undefined);
+
+      featured = featured.concat(coinKrazyGames);
+
+      // Priority 2: ALL AI-Generated Games from CoinKrazy Studios (if not already featured)
+      const aiGeneratedGames = enabledGames.filter((g: Game) =>
+        g.provider === 'CoinKrazy Studios' && !featured.find(f => f.id === g.id)
+      );
       featured = featured.concat(aiGeneratedGames);
-
-      // Priority 2: CoinKrazy branded games
-      const coinKrazyCoinHot = enabledGames.find((g: Game) => g.slug === 'coinkrazy-coinhot-inferno');
-      const coinKrazyCoinUp = enabledGames.find((g: Game) => g.slug === 'coinkrazy-coinup-lightning');
-
-      if (coinKrazyCoinHot && !featured.find(g => g.id === coinKrazyCoinHot.id)) {
-        featured.push(coinKrazyCoinHot);
-      }
-      if (coinKrazyCoinUp && !featured.find(g => g.id === coinKrazyCoinUp.id)) {
-        featured.push(coinKrazyCoinUp);
-      }
 
       // Priority 3: Add remaining games up to 6 total
       if (featured.length < 6) {

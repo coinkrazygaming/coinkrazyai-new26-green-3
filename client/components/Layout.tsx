@@ -332,6 +332,41 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     MANAGE GAMES
                   </Link>
                 </Button>
+
+                {/* CoinKrazy Games Management */}
+                <div className="pt-2 mt-2 border-t border-red-500/20">
+                  <p className="text-[9px] font-black uppercase text-red-500/60 tracking-widest mb-2 pl-2">CoinKrazy Games</p>
+                  <div className="space-y-1">
+                    <Link
+                      to="/admin/games?search=CoinKrazy-CoinUp"
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-bold uppercase text-slate-300 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200"
+                    >
+                      <Zap className="w-3 h-3" />
+                      CoinUp
+                    </Link>
+                    <Link
+                      to="/admin/games?search=CoinKrazy-Hot"
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-bold uppercase text-slate-300 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200"
+                    >
+                      <Zap className="w-3 h-3" />
+                      Hot
+                    </Link>
+                    <Link
+                      to="/admin/games?search=CoinKrazy-Thunder"
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-bold uppercase text-slate-300 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200"
+                    >
+                      <Zap className="w-3 h-3" />
+                      Thunder
+                    </Link>
+                    <Link
+                      to="/admin/games?search=CoinKrazy-4Wolfs"
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-bold uppercase text-slate-300 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200"
+                    >
+                      <Zap className="w-3 h-3" />
+                      4 Wolfs
+                    </Link>
+                  </div>
+                </div>
               </div>
             )}
 
