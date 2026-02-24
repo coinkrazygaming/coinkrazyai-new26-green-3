@@ -113,9 +113,48 @@ export const AIGameEditor: React.FC = () => {
         });
         toast.success('Game generated! Review and submit below');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('AI generation failed:', error);
-      toast.error('Failed to generate game with AI');
+      const errorMsg = error.message || 'Failed to generate game with AI';
+      const details = error.details?.details || error.details?.error || '';
+      const fullMsg = details ? `${errorMsg}: ${details}` : errorMsg;
+      toast.error(fullMsg);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const createGameFromAI = async () => {
+    if (!aiPrompt.trim()) {
+      toast.error('Please enter a game description prompt');
+      return;
+    }
+
+    try {
+      setIsGenerating(true);
+      // Call one-click AI game creation endpoint
+      const response = await apiCall('/api/admin/v2/games/create-from-ai', {
+        method: 'POST',
+        body: JSON.stringify({ prompt: aiPrompt }),
+      });
+
+      if (response.success) {
+        toast.success(`✨ Game "${response.data.name}" created automatically!`);
+        await fetchGames();
+        setAiPrompt('');
+      }
+    } catch (error: any) {
+      console.error('AI game creation failed:', error);
+      const errorMsg = error.message || 'Failed to create game with AI';
+      const details = error.details?.details || error.details?.error || '';
+
+      // Show suggested slug if available
+      if (error.details?.suggestedSlug) {
+        toast.error(`${errorMsg}. Try: ${error.details.suggestedSlug}`);
+      } else {
+        const fullMsg = details ? `${errorMsg}: ${details}` : errorMsg;
+        toast.error(fullMsg);
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -159,9 +198,12 @@ export const AIGameEditor: React.FC = () => {
         await fetchGames();
         resetForm();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save game:', error);
-      toast.error('Failed to save game');
+      const errorMsg = error.message || 'Failed to save game';
+      const details = error.details?.details || error.details?.error || '';
+      const fullMsg = details ? `${errorMsg}: ${details}` : errorMsg;
+      toast.error(fullMsg);
     }
   };
 
@@ -170,11 +212,14 @@ export const AIGameEditor: React.FC = () => {
 
     try {
       await apiCall(`/api/admin/v2/games/${gameId}`, { method: 'DELETE' });
-      toast.success('Game deleted');
+      toast.success('Game deleted successfully');
       await fetchGames();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to delete game:', error);
-      toast.error('Failed to delete game');
+      const errorMsg = error.message || 'Failed to delete game';
+      const details = error.details?.details || error.details?.error || '';
+      const fullMsg = details ? `${errorMsg}: ${details}` : errorMsg;
+      toast.error(fullMsg);
     }
   };
 
@@ -237,13 +282,22 @@ export const AIGameEditor: React.FC = () => {
           rows={4}
         />
 
-        <Button
-          onClick={generateGameWithAI}
-          disabled={isGenerating || !aiPrompt.trim()}
-          className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold py-2 rounded-lg disabled:opacity-50"
-        >
-          {isGenerating ? '🔄 Generating...' : '✨ Generate with AI'}
-        </Button>
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            onClick={generateGameWithAI}
+            disabled={isGenerating || !aiPrompt.trim()}
+            className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold py-2 rounded-lg disabled:opacity-50"
+          >
+            {isGenerating ? '🔄 Generating...' : '📋 Review First'}
+          </Button>
+          <Button
+            onClick={createGameFromAI}
+            disabled={isGenerating || !aiPrompt.trim()}
+            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-2 rounded-lg disabled:opacity-50"
+          >
+            {isGenerating ? '⚡ Creating...' : '⚡ Create Now'}
+          </Button>
+        </div>
       </motion.div>
 
       {/* Games List */}

@@ -855,3 +855,138 @@ export const generateGameWithAI: RequestHandler = async (req, res) => {
     });
   }
 };
+
+// ONE-CLICK AI GAME CREATION
+// Generate game with AI and immediately create it (no review needed)
+export const createGameFromAI: RequestHandler = async (req, res) => {
+  try {
+    const { prompt } = req.body;
+
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    // Import Google Generative AI
+    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_KEY;
+
+    if (!apiKey) {
+      return res.status(500).json({ error: 'AI service not configured' });
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+
+    const aiPrompt = `You are a game designer. Based on this description, generate a JSON object for a new online game with ONLY these fields (no other fields):
+
+    User request: "${prompt}"
+
+    Return ONLY valid JSON (no markdown, no code blocks) with these fields:
+    - name: string (creative game name, max 50 chars)
+    - slug: string (lowercase, hyphens, no spaces)
+    - category: string (Slots, Poker, Bingo, or Sportsbook)
+    - type: string (slots, poker, bingo, or sportsbook)
+    - volatility: string (Low, Medium, or High)
+    - rtp: number (between 90-98)
+    - description: string (1-2 sentences)
+    - max_bet: number (must be 5 or less)
+    - min_bet: number (0.1-1)
+    - image_url: string (empty string is ok)
+
+    Example output:
+    {"name":"Fire Dragon Slots","slug":"fire-dragon-slots","category":"Slots","type":"slots","volatility":"High","rtp":96.5,"description":"Epic dragon-themed slot with fiery animations","max_bet":5,"min_bet":0.1,"image_url":""}`;
+
+    const result = await model.generateContent(aiPrompt);
+    const responseText = result.response.text();
+
+    // Parse the response
+    let gameData;
+    try {
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        gameData = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('No JSON found in response');
+      }
+    } catch (parseErr) {
+      console.error('Failed to parse AI response:', responseText);
+      return res.status(500).json({ error: 'Failed to parse AI response' });
+    }
+
+    // Validate and sanitize
+    const sanitized = {
+      name: String(gameData.name || '').substring(0, 50),
+      slug: String(gameData.slug || '').toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+      category: ['Slots', 'Poker', 'Bingo', 'Sportsbook'].includes(gameData.category) ? gameData.category : 'Slots',
+      type: gameData.type || 'slots',
+      volatility: ['Low', 'Medium', 'High'].includes(gameData.volatility) ? gameData.volatility : 'Medium',
+      rtp: Math.max(90, Math.min(98, parseFloat(gameData.rtp) || 96)),
+      description: String(gameData.description || '').substring(0, 500),
+      max_bet: Math.min(5, parseFloat(gameData.max_bet) || 5),
+      min_bet: parseFloat(gameData.min_bet) || 0.1,
+      image_url: gameData.image_url || '',
+    };
+
+    // Validate sanitized data
+    if (!sanitized.name || sanitized.name.trim().length === 0) {
+      return res.status(400).json({ error: 'Game name is required and cannot be empty' });
+    }
+
+    if (!sanitized.slug || sanitized.slug.trim().length === 0) {
+      return res.status(400).json({ error: 'Game slug is required and cannot be empty' });
+    }
+
+    // Check for duplicate slug
+    const slugCheck = await query('SELECT id FROM games WHERE slug = $1', [sanitized.slug]);
+    if (slugCheck.rows.length > 0) {
+      return res.status(400).json({
+        error: `Game with slug "${sanitized.slug}" already exists. AI generated a duplicate slug.`,
+        suggestedSlug: sanitized.slug + '-' + Math.random().toString(36).substring(7)
+      });
+    }
+
+    // Create the game directly
+    const gameResult = await query(
+      `INSERT INTO games (name, category, provider, rtp, volatility, description, image_url, enabled, slug, type)
+       VALUES ($1, $2, 'CoinKrazy Studios', $3, $4, $5, $6, true, $7, $8)
+       RETURNING *`,
+      [sanitized.name, sanitized.category, sanitized.rtp, sanitized.volatility, sanitized.description, sanitized.image_url, sanitized.slug, sanitized.type]
+    );
+
+    if (gameResult.rows.length > 0) {
+      const gameId = gameResult.rows[0].id;
+
+      // Create compliance record with 10 SC max win cap
+      try {
+        await query(
+          `INSERT INTO game_compliance (game_id, is_external, is_sweepstake, is_social_casino, currency, max_win_amount, min_bet, max_bet)
+           VALUES ($1, true, true, true, 'SC', 10.00, $2, $3)
+           ON CONFLICT (game_id) DO UPDATE SET max_win_amount = 10.00`,
+          [gameId, sanitized.min_bet, sanitized.max_bet]
+        );
+      } catch (compErr) {
+        console.warn(`[Games] Failed to configure compliance for ${sanitized.name}:`, (compErr as Error).message);
+      }
+
+      try {
+        await SlackService.notifyAdminAction(req.user?.email || 'admin', 'Created AI game', `${sanitized.name} - ${sanitized.category}`);
+      } catch (slackErr) {
+        console.warn('[Games] Failed to send Slack notification');
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        ...gameResult.rows[0],
+        message: `Game "${sanitized.name}" created successfully!`
+      }
+    });
+  } catch (error) {
+    console.error('AI game creation error:', error);
+    res.status(500).json({
+      error: 'Failed to create game with AI',
+      details: (error as Error).message,
+    });
+  }
+};

@@ -2,6 +2,7 @@ import { RequestHandler } from 'express';
 import * as dbQueries from '../db/queries';
 import { query } from '../db/connection';
 import { emitWalletUpdate } from '../socket';
+import { GameRNG } from '../services/game-rng-service';
 
 // ===== TYPES =====
 interface SpinRequest {
@@ -95,7 +96,7 @@ export const handleProcessSpin: RequestHandler = async (req, res) => {
 
     // Get game config
     const gameResult = await query(
-      `SELECT g.id, g.name, gc.max_win_amount, gc.min_bet, gc.max_bet
+      `SELECT g.id, g.name, g.rtp, g.volatility, gc.max_win_amount, gc.min_bet, gc.max_bet
        FROM games g
        LEFT JOIN game_compliance gc ON g.id = gc.game_id
        WHERE g.id = $1`,
@@ -128,20 +129,31 @@ export const handleProcessSpin: RequestHandler = async (req, res) => {
       });
     }
 
-    // 35% win rate, win between 0.2x and 10x bet, capped at 10 SC.
-    const winChance = Math.random();
-    let actualWin = 0;
+    // Prepare RNG configuration
+    const rngConfig = {
+      rtp: gameConfig.rtp || 96.0,
+      volatility: (gameConfig.volatility || 'Medium') as 'Low' | 'Medium' | 'High',
+      minBet: minBet,
+      maxBet: maxBet,
+      maxWinAmount: maxWin
+    };
 
-    if (winChance > 0.65) {
-      // For social casino, we want more frequent smaller wins
-      const multiplier = 0.2 + Math.random() * 5.0;
-      actualWin = Math.round(bet_amount * multiplier * 100) / 100;
+    // Validate RNG configuration
+    const validation = GameRNG.validateConfig(rngConfig);
+    if (!validation.valid) {
+      console.error('[Spin] Invalid RNG config:', validation.errors);
+      return res.status(500).json({
+        success: false,
+        error: 'Invalid game configuration',
+        details: validation.errors.join(', ')
+      });
     }
 
-    // Strictly enforce the 10 SC limit requested by the user
-    if (actualWin > 10.00) {
-      actualWin = 10.00;
-    }
+    // Use production-ready RNG service with game's RTP and volatility
+    const spinResult = GameRNG.processSpin(rngConfig, bet_amount);
+
+    const actualWin = spinResult.winAmount;
+    const auditSeed = spinResult.seed;
 
     // Calculate net result
     const netResult = actualWin - bet_amount;
@@ -154,15 +166,15 @@ export const handleProcessSpin: RequestHandler = async (req, res) => {
     );
 
     // Log spin result
-    const spinResult = await query(
-      `INSERT INTO spin_results 
+    const dbSpinResult = await query(
+      `INSERT INTO spin_results
        (player_id, game_id, game_name, bet_amount, win_amount, net_result, balance_before, balance_after, currency, status)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'SC', 'completed')
        RETURNING id, player_id, game_id, game_name, bet_amount, win_amount, net_result, balance_after`,
       [req.user.playerId, game_id, gameConfig.name, bet_amount, actualWin, netResult, currentBalance, newBalance]
     );
 
-    const spin = spinResult.rows[0];
+    const spin = dbSpinResult.rows[0];
 
     // Emit real-time wallet update via socket
     try {
@@ -177,7 +189,7 @@ export const handleProcessSpin: RequestHandler = async (req, res) => {
       console.warn('[Spin] Failed to emit socket update:', socketErr);
     }
 
-    console.log(`[Spin] Player ${req.user.playerId} played ${gameConfig.name}: bet ${bet_amount} SC, won ${actualWin} SC, net ${netResult} SC, new balance ${newBalance.toFixed(2)} SC`);
+    console.log(`[Spin] Player ${req.user.playerId} played ${gameConfig.name}: bet ${bet_amount} SC, won ${actualWin} SC, multiplier ${spinResult.multiplier}x, net ${netResult} SC, new balance ${newBalance.toFixed(2)} SC [Seed: ${auditSeed.substring(0, 8)}...]`);
 
     res.json({
       success: true,
