@@ -67,7 +67,7 @@ export const AIGameEditor: React.FC = () => {
   const fetchGames = async () => {
     try {
       setIsLoading(true);
-      const response = await apiCall('/api/admin/v2/games', {
+      const response = await apiCall('/admin/v2/games', {
         headers: { 'Content-Type': 'application/json' },
       });
       if (response.success) {
@@ -90,7 +90,7 @@ export const AIGameEditor: React.FC = () => {
     try {
       setIsGenerating(true);
       // Call Google Generative AI endpoint via backend
-      const response = await apiCall('/api/admin/v2/games/generate-with-ai', {
+      const response = await apiCall('/admin/v2/games/generate-with-ai', {
         method: 'POST',
         body: JSON.stringify({ prompt: aiPrompt }),
       });
@@ -133,7 +133,7 @@ export const AIGameEditor: React.FC = () => {
     try {
       setIsGenerating(true);
       // Call one-click AI game creation endpoint
-      const response = await apiCall('/api/admin/v2/games/create-from-ai', {
+      const response = await apiCall('/admin/v2/games/create-from-ai', {
         method: 'POST',
         body: JSON.stringify({ prompt: aiPrompt }),
       });
@@ -181,8 +181,8 @@ export const AIGameEditor: React.FC = () => {
 
     try {
       const url = selectedGame
-        ? `/api/admin/v2/games/${selectedGame.id}`
-        : '/api/admin/v2/games';
+        ? `/admin/v2/games/${selectedGame.id}`
+        : '/admin/v2/games';
       const method = selectedGame ? 'PUT' : 'POST';
 
       const response = await apiCall(url, {
@@ -211,7 +211,7 @@ export const AIGameEditor: React.FC = () => {
     if (!confirm('Are you sure you want to delete this game?')) return;
 
     try {
-      await apiCall(`/api/admin/v2/games/${gameId}`, { method: 'DELETE' });
+      await apiCall(`/admin/v2/games/${gameId}`, { method: 'DELETE' });
       toast.success('Game deleted successfully');
       await fetchGames();
     } catch (error: any) {
