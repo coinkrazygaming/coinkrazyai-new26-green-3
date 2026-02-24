@@ -1,18 +1,25 @@
 {
-  "version": 2,
   "builds": [
     {
-      "src": "client/**/*",  // Adjust if your frontend folder is different
+      "src": "*.tsx",  // or "App.tsx" / "main.tsx" if Vite auto-detects poorly
       "use": "@vercel/static-build",
-      "config": { "distDir": "client/dist" }  // Vite default output
+      "config": {
+        "distDir": "dist"  // Vite default output dir – change if yours is different (check vite.config.ts)
+      }
     },
     {
-      "src": "server/node-build.ts",  // Or .mjs / index.ts if that's entry
+      "src": "server/node-build.ts",  // your entrypoint file
       "use": "@vercel/node"
     }
   ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/server/node-build.ts" },
-    { "src": "/(.*)", "dest": "/client/dist/$1" }
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/server/node-build.ts/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/dist/$1"  // serve frontend static files
+    }
   ]
 }
