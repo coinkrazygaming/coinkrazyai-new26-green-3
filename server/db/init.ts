@@ -361,6 +361,34 @@ const seedDatabase = async () => {
         );
       }
 
+      // Add CoinKrazy-CoinUp as a featured game
+      try {
+        await query(
+          `INSERT INTO games (name, slug, category, type, provider, rtp, volatility, description, image_url, thumbnail, embed_url, launch_url, enabled, is_branded_popup, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+           ON CONFLICT (slug) DO UPDATE SET updated_at = CURRENT_TIMESTAMP`,
+          [
+            'CoinKrazy-CoinUp: Lightning Edition',
+            'coinkrazy-coinup-lightning',
+            'Slots',
+            'slots',
+            'CoinKrazy Studios',
+            96.5,
+            'High',
+            'Lightning fast slots action with CoinUp bonus rounds. Strike it rich with the CoinKrazy-CoinUp: Lightning Edition!',
+            'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=400&h=300&fit=crop',
+            'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=200&h=150&fit=crop',
+            '/coin-krazy-coin-up',
+            '/coin-krazy-coin-up',
+            true,
+            true
+          ]
+        );
+        console.log('[DB] Added CoinKrazy-CoinUp game');
+      } catch (err: any) {
+        console.log('[DB] CoinKrazy-CoinUp game already exists or error:', err.message?.substring(0, 100));
+      }
+
       // Seed bonuses
       const bonuses = [
         ['Welcome Bonus 100%', 'Deposit', '$100', 100, 10, 1200],
@@ -672,6 +700,20 @@ const seedDatabase = async () => {
           method
         );
       }
+    }
+
+    // Clean up old imported games - keep only CoinKrazy games and internal games
+    try {
+      const result = await query(
+        `DELETE FROM games
+         WHERE provider NOT IN ('CoinKrazy Studios', 'Internal', '')
+         AND slug NOT LIKE 'coinkrazy-%'`
+      );
+      if (result.rowCount > 0) {
+        console.log(`[DB] Removed ${result.rowCount} old imported games`);
+      }
+    } catch (err: any) {
+      console.log('[DB] Note: Could not clean up old games (may not exist yet)');
     }
   } catch (error) {
     console.error('[DB] Seeding failed:', error);

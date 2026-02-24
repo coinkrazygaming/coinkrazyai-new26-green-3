@@ -5,12 +5,11 @@ import { cn } from '@/lib/utils';
 interface WinModalProps {
   isOpen: boolean;
   winAmount: number;
-  maxWinCap: number;
   onClaim: () => void;
   onShare: (platform: string) => void;
 }
 
-const WinModal: React.FC<WinModalProps> = ({ isOpen, winAmount, maxWinCap, onClaim, onShare }) => {
+const WinModal: React.FC<WinModalProps> = ({ isOpen, winAmount, onClaim, onShare }) => {
   if (!isOpen) return null;
 
   const shareOptions = [
@@ -18,8 +17,6 @@ const WinModal: React.FC<WinModalProps> = ({ isOpen, winAmount, maxWinCap, onCla
     { id: 'facebook', label: 'Facebook', icon: '📘', color: 'from-blue-600 to-blue-700' },
     { id: 'copy', label: 'Copy Text', icon: '📋', color: 'from-gray-500 to-gray-600' },
   ];
-
-  const isCapped = winAmount >= maxWinCap;
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -61,13 +58,6 @@ const WinModal: React.FC<WinModalProps> = ({ isOpen, winAmount, maxWinCap, onCla
               </div>
               <div className="text-2xl font-bold text-yellow-100 mt-2">SC</div>
             </div>
-
-            {/* Win Cap Notice */}
-            {isCapped && (
-              <div className="mt-4 bg-yellow-900/50 border-2 border-yellow-600/50 rounded-lg px-4 py-2 text-yellow-300 text-sm font-semibold">
-                ⚠️ Win capped at maximum {maxWinCap} SC per spin
-              </div>
-            )}
           </div>
 
           {/* Action Buttons */}

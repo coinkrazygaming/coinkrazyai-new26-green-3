@@ -504,7 +504,6 @@ const CoinKrazyCoinUp = () => {
         winAmount={Math.min(winAmount, MAX_WIN_PER_SPIN)}
         onClaim={handleClaimWin}
         onShare={handleShare}
-        maxWinCap={MAX_WIN_PER_SPIN}
       />
 
       {/* Settings Panel */}
