@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Search, Filter, Grid, List as ListIcon, ChevronDown, Zap, ChevronRight } from 'lucide-react';
+import { Loader2, Search, Filter, Grid, List as ListIcon, ChevronDown, Zap, ChevronRight, Gamepad2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { games } from '@/lib/api';
 import { ImportedGameCard } from '@/components/slots/ImportedGameCard';
+import { GameLauncher } from '@/components/casino/GameLauncher';
+import { BrandedGameModal } from '@/components/casino/BrandedGameModal';
 
 interface Game {
   id: number;
@@ -42,6 +44,7 @@ const Games = () => {
   ];
 
   const [allGames, setAllGames] = useState<Game[]>([]);
+  const [featuredGames, setFeaturedGames] = useState<Game[]>([]);
   const [filteredGames, setFilteredGames] = useState<Game[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -52,6 +55,8 @@ const Games = () => {
   const [maxRTP, setMaxRTP] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [isBrandedModalOpen, setIsBrandedModalOpen] = useState(false);
 
   // Set initial game type from URL param
   useEffect(() => {
@@ -80,11 +85,42 @@ const Games = () => {
       const gamesData = Array.isArray(response) ? response : (response?.data || []);
       const enabledGames = gamesData.filter((g: Game) => g.enabled !== false);
       setAllGames(enabledGames);
+
+      // Calculate featured games - similar to Index.tsx
+      let featured = [];
+
+      // Priority 1: AI-Generated Games from CoinKrazy Studios
+      const aiGeneratedGames = enabledGames.filter((g: Game) => g.provider === 'CoinKrazy Studios');
+      featured = featured.concat(aiGeneratedGames);
+
+      // Priority 2: CoinKrazy branded games
+      const coinKrazyCoinHot = enabledGames.find((g: Game) => g.slug === 'coinkrazy-coinhot-inferno');
+      const coinKrazyCoinUp = enabledGames.find((g: Game) => g.slug === 'coinkrazy-coinup-lightning');
+
+      if (coinKrazyCoinHot && !featured.find(g => g.id === coinKrazyCoinHot.id)) {
+        featured.push(coinKrazyCoinHot);
+      }
+      if (coinKrazyCoinUp && !featured.find(g => g.id === coinKrazyCoinUp.id)) {
+        featured.push(coinKrazyCoinUp);
+      }
+
+      // Priority 3: Add remaining games up to 6 total
+      if (featured.length < 6) {
+        const usedIds = new Set(featured.map(g => g.id));
+        featured = featured.concat(
+          enabledGames
+            .filter((g: Game) => !usedIds.has(g.id))
+            .slice(0, 6 - featured.length)
+        );
+      }
+
+      setFeaturedGames(featured);
       toast.success(`Loaded ${enabledGames.length} games`);
     } catch (error) {
       console.error('Failed to fetch games:', error);
       toast.error('Failed to load games');
       setAllGames([]);
+      setFeaturedGames([]);
     } finally {
       setIsLoading(false);
     }
@@ -215,41 +251,75 @@ const Games = () => {
       </div>
 
       {/* Featured Games Section */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">⚡ Featured Games</h2>
-          <Badge className="bg-gradient-to-r from-cyan-500 to-purple-500">NEW</Badge>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* CoinKrazy-CoinUp Featured Card */}
-          <Link to="/coin-krazy-coin-up" className="group">
-            <Card className="h-full border-2 border-cyan-500/50 bg-gradient-to-br from-cyan-500/10 via-purple-500/10 to-transparent hover:border-cyan-500 transition-all duration-300 overflow-hidden shadow-lg hover:shadow-cyan-500/30 hover:scale-105">
-              <div className="h-40 bg-gradient-to-br from-cyan-600 to-purple-700 flex items-center justify-center relative overflow-hidden">
-                <Zap className="w-20 h-20 text-white/30 absolute -right-4 -bottom-4 rotate-12 group-hover:rotate-0 transition-transform duration-500" />
-                <Zap className="w-12 h-12 text-white relative z-10 drop-shadow-2xl group-hover:scale-110 transition-transform" />
+      {featuredGames.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">⚡ Featured Games</h2>
+            <Badge className="bg-gradient-to-r from-cyan-500 to-purple-500">NEW</Badge>
+          </div>
+          <GameLauncher>
+            {(launchGame) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {featuredGames.map((game) => (
+                  <Card
+                    key={game.id}
+                    className="h-full border-2 border-cyan-500/50 bg-gradient-to-br from-cyan-500/10 via-purple-500/10 to-transparent hover:border-cyan-500 transition-all duration-300 overflow-hidden shadow-lg hover:shadow-cyan-500/30 hover:scale-105 cursor-pointer group"
+                    onClick={() => {
+                      setSelectedGame(game);
+                      if (game.is_branded_popup) {
+                        setIsBrandedModalOpen(true);
+                      } else {
+                        launchGame(game);
+                      }
+                    }}
+                  >
+                    <div className="h-40 bg-gradient-to-br from-cyan-600 to-purple-700 flex items-center justify-center relative overflow-hidden">
+                      {game.image_url ? (
+                        <img
+                          src={game.image_url}
+                          alt={game.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        />
+                      ) : (
+                        <>
+                          <Zap className="w-20 h-20 text-white/30 absolute -right-4 -bottom-4 rotate-12 group-hover:rotate-0 transition-transform duration-500" />
+                          <Gamepad2 className="w-12 h-12 text-white relative z-10 drop-shadow-2xl group-hover:scale-110 transition-transform" />
+                        </>
+                      )}
+                    </div>
+                    <CardContent className="p-6 space-y-3">
+                      <div>
+                        <h3 className="font-black text-xl line-clamp-1">{game.name}</h3>
+                        <p className="text-xs text-muted-foreground font-semibold mt-1">{game.provider}</p>
+                      </div>
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {game.description || `Experience ${game.name} with amazing payouts and features`}
+                      </p>
+                      <div className="space-y-1 pt-2 border-t border-cyan-500/30">
+                        {game.rtp && (
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">RTP</span>
+                            <span className="font-bold text-cyan-400">{game.rtp}%</span>
+                          </div>
+                        )}
+                        {game.volatility && (
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">Volatility</span>
+                            <span className="font-bold text-cyan-400">{game.volatility}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="pt-2 flex items-center text-cyan-400 font-black text-xs uppercase tracking-widest group-hover:gap-2 transition-all">
+                        Play Now <ChevronRight className="w-4 h-4" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
-              <CardContent className="p-6 space-y-3">
-                <div>
-                  <h3 className="font-black text-xl">CoinKrazy-CoinUp</h3>
-                  <p className="text-xs text-muted-foreground font-semibold mt-1">Lightning Edition 🌩️</p>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  High-energy 3×3 lightning slots with glowing coins and Coin UP bonuses
-                </p>
-                <div className="space-y-1 pt-2 border-t border-cyan-500/30">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Max Bet</span>
-                    <span className="font-bold text-cyan-400">5 SC</span>
-                  </div>
-                </div>
-                <div className="pt-2 flex items-center text-cyan-400 font-black text-xs uppercase tracking-widest group-hover:gap-2 transition-all">
-                  Play Now <ChevronRight className="w-4 h-4" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+            )}
+          </GameLauncher>
         </div>
-      </div>
+      )}
 
       {/* Game Type Tabs */}
       <div className="flex flex-wrap gap-2">
@@ -532,6 +602,18 @@ const Games = () => {
             />
           ))}
         </div>
+      )}
+
+      {/* Branded Game Modal */}
+      {selectedGame && isBrandedModalOpen && (
+        <BrandedGameModal
+          isOpen={isBrandedModalOpen}
+          game={selectedGame}
+          onClose={() => {
+            setIsBrandedModalOpen(false);
+            setSelectedGame(null);
+          }}
+        />
       )}
 
     </div>
