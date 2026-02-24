@@ -725,6 +725,17 @@ const seedDatabase = async () => {
 
     // Clean up old imported games - keep only CoinKrazy games and internal games
     try {
+      // First, delete game_config records for games we want to remove
+      await query(
+        `DELETE FROM game_config
+         WHERE game_id IN (
+           SELECT id FROM games
+           WHERE provider NOT IN ('CoinKrazy Studios', 'Internal', '')
+           AND slug NOT LIKE 'coinkrazy-%'
+         )`
+      );
+
+      // Then delete the games themselves
       const result = await query(
         `DELETE FROM games
          WHERE provider NOT IN ('CoinKrazy Studios', 'Internal', '')
