@@ -37,6 +37,7 @@ import PoolShark from "./pages/PoolShark";
 import Referrals from "./pages/Referrals";
 import VIP from "./pages/VIP";
 import CoinKrazyCoinUp from "./pages/CoinKrazyCoinUp";
+import CoinKrazyCoinHot from "./pages/CoinKrazyCoinHot";
 
 const queryClient = new QueryClient();
 
