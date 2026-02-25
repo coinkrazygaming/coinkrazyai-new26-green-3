@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 // Import admin sub-components
 import AdminDashboard from '@/components/admin/AdminDashboard';
 import AdminSalesDashboard from '@/components/admin/AdminSalesDashboard';
-import { AdminNotificationsPanel } from '@/components/admin/AdminNotificationsPanel';
+import AdminNotifications from '@/components/admin/AdminNotifications';
 import AdminPlayers from '@/components/admin/AdminPlayers';
 import AdminKYC from '@/components/admin/AdminKYC';
 import AdminWallet from '@/components/admin/AdminWallet';
@@ -82,7 +82,7 @@ const Admin = () => {
 
         {/* Notifications */}
         <TabsContent value="notifications">
-          <AdminNotificationsPanel />
+          <AdminNotifications />
         </TabsContent>
 
         {/* Player Management */}
