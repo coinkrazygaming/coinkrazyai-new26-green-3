@@ -44,3 +44,10 @@ CREATE TABLE IF NOT EXISTS player_challenges (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (player_id, challenge_id)
 );
+
+-- Remove all external games - keep only CoinKrazy Studios games
+DELETE FROM slots_results WHERE game_id NOT IN (SELECT id FROM games WHERE provider = 'CoinKrazy Studios');
+DELETE FROM spin_results WHERE game_id NOT IN (SELECT id FROM games WHERE provider = 'CoinKrazy Studios');
+DELETE FROM game_compliance WHERE game_id NOT IN (SELECT id FROM games WHERE provider = 'CoinKrazy Studios');
+DELETE FROM game_config WHERE game_id NOT IN (SELECT id FROM games WHERE provider = 'CoinKrazy Studios');
+DELETE FROM games WHERE provider != 'CoinKrazy Studios' OR provider IS NULL;

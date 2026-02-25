@@ -748,34 +748,12 @@ const seedDatabase = async () => {
       }
     }
 
-    // Game seeding
-    const gameCount = await query('SELECT COUNT(*) as count FROM games');
+    // Game seeding - CoinKrazy Studios games only
+    const gameCount = await query('SELECT COUNT(*) as count FROM games WHERE provider = \'CoinKrazy Studios\'');
     if (parseInt(gameCount.rows[0].count) === 0) {
-      console.log('[DB] Seeding starter games...');
-      const starterGames = [
-        ['Knights vs Barbarians', 'Slots', 'External', 96.4, 'Medium', 'Experience epic battles between knights and barbarians', true, 'https://clashofslots.com/wp-content/uploads/2025/12/knights-vs-barbarians-logo-1.jpg', 'knights-vs-barbarians', 'https://demogamesfree.pragmaticplay.net/gs2c/openGame.do?stylename=demo_clienthub&lang=en&cur=USD&websiteUrl=https%3A%2F%2Fclienthub.pragmaticplay.com%2F&gcpif=2273&gameSymbol=vs10cenrlgdevl&jurisdiction=99'],
-        ['Emerald King Wheel of Wealth', 'Slots', 'External', 96.5, 'Medium', 'Spin the wheel of fortune in this luxurious emerald-themed slot adventure', true, 'https://clashofslots.com/wp-content/uploads/2025/12/emerald-king-wheel-of-wealth-logo.jpg', 'emerald-king', 'https://demogamesfree.pragmaticplay.net/gs2c/openGame.do?stylename=demo_clienthub&lang=en&cur=USD&websiteUrl=https%3A%2F%2Fclienthub.pragmaticplay.com%2Fru%2F&gcpif=2273&gameSymbol=vs10dublin&jurisdiction=99'],
-        ['3 Blades & Blessings', 'Slots', 'External', 96.2, 'High', 'Mythological adventure with ancient gods and sacred treasures', true, 'https://clashofslots.com/wp-content/uploads/2026/01/3-blades-blessings-logo.jpg', '3-blades', 'https://released.playngonetwork.com/casino/ContainerLauncher?pid=2&gid=3bladesandblessings&lang=en_GB&practice=1&channel=desktop&demo=2'],
-        ['Arcanum', 'Slots', 'External', 96.3, 'Medium', 'Mystical magical experience with arcane symbols', true, 'https://clashofslots.com/wp-content/uploads/2025/11/arcanum-logo.jpg', 'arcanum', 'https://static-stage.contentmedia.eu/ecf3/index.html?gameid=10256&operatorid=44&currency=EUR&mode=demo&device=desktop&gamename=arcanum&language=en_gb&xdm=1&capi=https%3A%2F%2Fgc5-stage.contentmedia.eu%2Fcapi&papi=https%3A%2F%2Fpapi-stage.contentmedia.eu'],
-        ['Dragon Boyz', 'Slots', 'External', 96.1, 'High', 'Roaring action with dragons and fiery wins', true, 'https://clashofslots.com/wp-content/uploads/2025/12/dragon-boyz-logo.jpg', 'dragon-boyz', 'https://playin.com/embed/v1/demo/dragonboyz000000'],
-        ['Big Joker', 'Slots', 'External', 95.8, 'Medium', 'Classic fruit-themed slot with a big joker surprise!', true, 'https://images.pexels.com/photos/2838511/pexels-photo-2838511.jpeg', 'big-joker', 'https://free-slots.games/game/BigJokerCT/']
-      ];
-
-      for (const game of starterGames) {
-        await query(
-          `INSERT INTO games (name, category, provider, rtp, volatility, description, enabled, image_url, slug, embed_url)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-          game
-        );
-      }
-      console.log('[DB] Starter games seeded');
-    }
-
-    // Always enable starter games
-    try {
-      await query(`UPDATE games SET enabled = TRUE WHERE provider = 'External'`);
-    } catch (err) {
-      // Games might not exist yet, that's ok
+      console.log('[DB] Seeding CoinKrazy Studios games...');
+      // Only seed CoinKrazy Studios games, no external games
+      console.log('[DB] CoinKrazy Studios games will be added below');
     }
 
     // Ensure CoinKrazy-Thunder game exists
@@ -924,29 +902,71 @@ const seedDatabase = async () => {
       }
     }
 
-    // Clean up old imported games - keep only CoinKrazy games and internal games
+    // Clean up all external games - keep ONLY CoinKrazy Studios games
     try {
-      // First, delete game_config records for games we want to remove
-      await query(
-        `DELETE FROM game_config
-         WHERE game_id IN (
-           SELECT id FROM games
-           WHERE provider NOT IN ('CoinKrazy Studios', 'Internal', '')
-           AND slug NOT LIKE 'coinkrazy-%'
-         )`
+      // Get list of games to delete (everything except CoinKrazy Studios)
+      const gamesToDelete = await query(
+        `SELECT id FROM games WHERE provider != 'CoinKrazy Studios' OR provider IS NULL`
       );
 
-      // Then delete the games themselves
-      const result = await query(
-        `DELETE FROM games
-         WHERE provider NOT IN ('CoinKrazy Studios', 'Internal', '')
-         AND slug NOT LIKE 'coinkrazy-%'`
-      );
-      if (result.rowCount > 0) {
-        console.log(`[DB] Removed ${result.rowCount} old imported games`);
+      if (gamesToDelete.rows.length > 0) {
+        const gameIds = gamesToDelete.rows.map((row: any) => row.id);
+
+        // Delete associated records
+        console.log(`[DB] Cleaning up ${gameIds.length} non-CoinKrazy games...`);
+
+        // Delete from slots_results (has foreign key to games)
+        try {
+          const slotsResult = await query(
+            `DELETE FROM slots_results WHERE game_id = ANY($1::integer[])`,
+            [gameIds]
+          );
+          console.log(`[DB] Deleted ${slotsResult.rowCount} slots results records`);
+        } catch (err) {
+          console.log('[DB] slots_results cleanup note:', err.message?.substring(0, 80));
+        }
+
+        // Delete from spin_results (has foreign key to games)
+        try {
+          const spinResult = await query(
+            `DELETE FROM spin_results WHERE game_id = ANY($1::integer[])`,
+            [gameIds]
+          );
+          console.log(`[DB] Deleted ${spinResult.rowCount} spin records`);
+        } catch (err) {
+          console.log('[DB] spin_results cleanup note:', err.message?.substring(0, 80));
+        }
+
+        // Delete from game_config
+        try {
+          const configResult = await query(
+            `DELETE FROM game_config WHERE game_id = ANY($1::integer[])`,
+            [gameIds]
+          );
+          console.log(`[DB] Deleted ${configResult.rowCount} game config records`);
+        } catch (err) {
+          console.log('[DB] game_config cleanup note:', err.message?.substring(0, 80));
+        }
+
+        // Delete from game_compliance
+        try {
+          const complianceResult = await query(
+            `DELETE FROM game_compliance WHERE game_id = ANY($1::integer[])`,
+            [gameIds]
+          );
+          console.log(`[DB] Deleted ${complianceResult.rowCount} game compliance records`);
+        } catch (err) {
+          console.log('[DB] game_compliance cleanup note:', err.message?.substring(0, 80));
+        }
+
+        // Finally delete the games
+        const result = await query(
+          `DELETE FROM games WHERE provider != 'CoinKrazy Studios' OR provider IS NULL`
+        );
+        console.log(`[DB] Removed ${result.rowCount} external games - now only CoinKrazy Studios games remain`);
       }
     } catch (err: any) {
-      console.log('[DB] Note: Could not clean up old games (may not exist yet)');
+      console.log('[DB] Error during game cleanup:', err.message?.substring(0, 100));
     }
   } catch (error) {
     console.error('[DB] Seeding failed:', error);
