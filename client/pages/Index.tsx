@@ -81,20 +81,11 @@ const Index = () => {
 
       let featured = [];
 
-      // Priority 1: ALL 4 CoinKrazy Games (Featured First!)
-      const coinKrazyGameNames = ['CoinKrazy-CoinUp: Lightning Edition', 'CoinKrazy-Hot', 'CoinKrazy-Thunder', 'CoinKrazy-4Wolfs'];
-      const coinKrazyGames = coinKrazyGameNames
-        .map(name => enabledGames.find((g: Game) => g.name === name))
-        .filter((g): g is Game => g !== undefined);
+      // Priority 1: ALL CoinKrazy Studios Games (provider-based, fully automatic)
+      const coinKrazyGames = enabledGames.filter((g: Game) => g.provider === 'CoinKrazy Studios');
       featured = featured.concat(coinKrazyGames);
 
-      // Priority 2: ALL AI-Generated Games from CoinKrazy Studios (if not already featured)
-      const aiGeneratedGames = enabledGames.filter((g: Game) =>
-        g.provider === 'CoinKrazy Studios' && !featured.find(f => f.id === g.id)
-      );
-      featured = featured.concat(aiGeneratedGames);
-
-      // Priority 3: Add remaining games up to 6 total to showcase more variety
+      // Priority 2: Add remaining games up to 6 total to showcase more variety
       if (featured.length < 6) {
         const usedIds = new Set(featured.map(g => g.id));
         featured = featured.concat(

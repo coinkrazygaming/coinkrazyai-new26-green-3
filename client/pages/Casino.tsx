@@ -1,13 +1,32 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Dice5, Zap, Gamepad2, Coins, Trophy, 
-  Sparkles, Star, ChevronRight, Play 
+import {
+  Dice5, Zap, Gamepad2, Coins, Trophy,
+  Sparkles, Star, ChevronRight, Play, Loader2
 } from 'lucide-react';
 import { RecentWinners } from '@/components/RecentWinners';
+import { games as gamesApi } from '@/lib/api';
+import { GameLauncher } from '@/components/casino/GameLauncher';
+import { BrandedGameModal } from '@/components/casino/BrandedGameModal';
+
+interface Game {
+  id: number;
+  name: string;
+  provider: string;
+  category?: string;
+  type?: string;
+  rtp?: number;
+  volatility?: string;
+  image_url?: string;
+  thumbnail?: string;
+  embed_url?: string;
+  enabled?: boolean;
+  is_branded_popup?: boolean;
+  branding_config?: any;
+}
 
 const CASINO_CATEGORIES = [
   {
@@ -53,6 +72,35 @@ const CASINO_CATEGORIES = [
 ];
 
 const Casino = () => {
+  const [liveCasinoGames, setLiveCasinoGames] = useState<Game[]>([]);
+  const [isLoadingGames, setIsLoadingGames] = useState(true);
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [isBrandedModalOpen, setIsBrandedModalOpen] = useState(false);
+
+  useEffect(() => {
+    fetchLiveCasinoGames();
+  }, []);
+
+  const fetchLiveCasinoGames = async () => {
+    try {
+      setIsLoadingGames(true);
+      const response = await gamesApi.getGames();
+      const allGames = Array.isArray(response) ? response : (response?.data || []);
+
+      // Get all CoinKrazy Studios games - these are our live casino featured games
+      const coinKrazyGames = allGames.filter((g: Game) =>
+        g.provider === 'CoinKrazy Studios' && g.enabled !== false
+      );
+
+      setLiveCasinoGames(coinKrazyGames);
+    } catch (error) {
+      console.error('Failed to fetch live casino games:', error);
+      setLiveCasinoGames([]);
+    } finally {
+      setIsLoadingGames(false);
+    }
+  };
+
   return (
     <div className="space-y-12 pb-20">
       {/* Casino Header */}
@@ -107,6 +155,86 @@ const Casino = () => {
 
       {/* Recent Activity */}
       <RecentWinners />
+
+      {/* Live Casino - Slots & Reels (CoinKrazy Studios) */}
+      <section className="space-y-8">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <h2 className="text-4xl font-black italic uppercase tracking-tighter text-white">Live Casino</h2>
+            <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 font-black">LIVE NOW</Badge>
+          </div>
+          <p className="text-slate-400 font-bold uppercase tracking-tight">
+            Experience our premium CoinKrazy Studios slots & reels collection
+          </p>
+        </div>
+
+        {isLoadingGames ? (
+          <Card className="bg-slate-900/50 border-slate-800">
+            <CardContent className="py-20 flex justify-center items-center gap-4">
+              <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+              <p className="text-slate-400 font-bold">Loading live casino games...</p>
+            </CardContent>
+          </Card>
+        ) : liveCasinoGames.length > 0 ? (
+          <GameLauncher>
+            {(launchGame) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {liveCasinoGames.map((game) => (
+                  <Card
+                    key={game.id}
+                    className="h-full border-2 border-purple-500/50 bg-gradient-to-br from-purple-500/10 via-slate-900 to-slate-950 hover:border-purple-500 transition-all duration-300 overflow-hidden shadow-lg hover:shadow-purple-500/30 hover:scale-105 cursor-pointer group"
+                    onClick={() => {
+                      setSelectedGame(game);
+                      if (game.is_branded_popup) {
+                        setIsBrandedModalOpen(true);
+                      } else {
+                        launchGame(game);
+                      }
+                    }}
+                  >
+                    <div className="h-40 bg-gradient-to-br from-purple-600 to-slate-900 flex items-center justify-center relative overflow-hidden">
+                      {game.image_url ? (
+                        <img
+                          src={game.image_url}
+                          alt={game.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        />
+                      ) : (
+                        <>
+                          <Dice5 className="w-20 h-20 text-white/30 absolute -right-4 -bottom-4 rotate-12 group-hover:rotate-0 transition-transform duration-500" />
+                          <Zap className="w-12 h-12 text-white relative z-10 drop-shadow-2xl group-hover:scale-110 transition-transform" />
+                        </>
+                      )}
+                    </div>
+                    <CardContent className="p-4 space-y-2">
+                      <div>
+                        <h3 className="font-black text-sm line-clamp-2 text-white">{game.name}</h3>
+                        <p className="text-xs text-purple-400 font-semibold mt-1">{game.provider}</p>
+                      </div>
+                      {game.rtp && (
+                        <div className="flex justify-between text-xs pt-2 border-t border-purple-500/30">
+                          <span className="text-slate-400">RTP</span>
+                          <span className="font-bold text-purple-400">{game.rtp}%</span>
+                        </div>
+                      )}
+                      <div className="pt-2 flex items-center text-purple-400 font-black text-xs uppercase tracking-widest group-hover:gap-2 transition-all">
+                        Play Now <ChevronRight className="w-3 h-3" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </GameLauncher>
+        ) : (
+          <Card className="bg-slate-900/50 border-slate-800">
+            <CardContent className="py-20 text-center">
+              <Dice5 className="w-12 h-12 text-slate-500 mx-auto mb-4 opacity-50" />
+              <p className="text-slate-400 font-bold">No live casino games available yet</p>
+            </CardContent>
+          </Card>
+        )}
+      </section>
 
       {/* Featured Slots Promotion */}
       <section className="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border-4 border-blue-500/20 rounded-[3rem] p-12 relative overflow-hidden group">
@@ -166,6 +294,18 @@ const Casino = () => {
             </p>
          </Card>
       </section>
+
+      {/* Branded Game Modal */}
+      {selectedGame && isBrandedModalOpen && (
+        <BrandedGameModal
+          isOpen={isBrandedModalOpen}
+          game={selectedGame as any}
+          onClose={() => {
+            setIsBrandedModalOpen(false);
+            setSelectedGame(null);
+          }}
+        />
+      )}
     </div>
   );
 };

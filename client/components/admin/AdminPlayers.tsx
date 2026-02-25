@@ -96,11 +96,15 @@ const AdminPlayers = () => {
   const totalPages = Math.ceil(total / limit);
   const filteredPlayers = players;
 
+  const handleViewPlayer = (player: Player) => {
+    setSelectedPlayer(selectedPlayer?.id === player.id ? null : player);
+  };
+
   return (
     <div className="space-y-6">
       <Tabs defaultValue="list" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="list">Players</TabsTrigger>
+          <TabsTrigger value="list">Players ({total})</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="actions">Actions</TabsTrigger>
         </TabsList>
@@ -191,9 +195,13 @@ const AdminPlayers = () => {
                           </td>
                           <td className="py-3 px-2">
                             <div className="flex gap-1">
-                              <Button size="sm" variant="outline" onClick={() => setSelectedPlayer(player)}>View</Button>
-                              <Button size="sm" variant="outline" onClick={() => handleBalanceUpdate(player)}>Balance</Button>
-                              <Button size="sm" variant="outline" onClick={() => handleStatusChange(player.username, player.status === 'Active' ? 'Suspended' : 'Active')}>{player.status === 'Active' ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}</Button>
+                              <Button size="sm" variant="outline" onClick={() => handleViewPlayer(player)}>
+                                {selectedPlayer?.id === player.id ? 'Hide' : 'View'}
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => handleBalanceUpdate(player)} disabled={isSaving}>Balance</Button>
+                              <Button size="sm" variant="outline" onClick={() => handleStatusChange(player.username, player.status === 'Active' ? 'Suspended' : 'Active')} disabled={isSaving}>
+                                {player.status === 'Active' ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                              </Button>
                             </div>
                           </td>
                         </tr>
@@ -273,18 +281,105 @@ const AdminPlayers = () => {
       </Tabs>
 
       {selectedPlayer && (
-        <Card>
+        <Card className="bg-muted/50">
           <CardHeader>
-            <CardTitle>Player Details: {selectedPlayer.username}</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Player Details: {selectedPlayer.username}</CardTitle>
+              <Badge variant={selectedPlayer.status === 'Active' ? 'default' : 'destructive'}>
+                {selectedPlayer.status}
+              </Badge>
+            </div>
+            <CardDescription>{selectedPlayer.email}</CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-4">
-            <div><label className="text-sm font-medium">Name</label><p>{selectedPlayer.name}</p></div>
-            <div><label className="text-sm font-medium">Email</label><p>{selectedPlayer.email}</p></div>
-            <div><label className="text-sm font-medium">Joined</label><p>{selectedPlayer.created_at}</p></div>
-            <div><label className="text-sm font-medium">Last Login</label><p>{selectedPlayer.last_login}</p></div>
-            <div><label className="text-sm font-medium">Total Wagered</label><p>${selectedPlayer.total_wagered}</p></div>
-            <div><label className="text-sm font-medium">Total Won</label><p>${selectedPlayer.total_won}</p></div>
-            <Button onClick={() => setSelectedPlayer(null)} className="mt-4">Close</Button>
+          <CardContent className="space-y-6">
+            {/* Personal Info */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">FULL NAME</p>
+                <p className="font-semibold">{selectedPlayer.name}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">STATUS</p>
+                <Badge variant={selectedPlayer.status === 'Active' ? 'default' : 'destructive'}>
+                  {selectedPlayer.status}
+                </Badge>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">KYC LEVEL</p>
+                <p className="font-semibold">{selectedPlayer.kyc_level}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">ID</p>
+                <p className="font-semibold text-sm">{selectedPlayer.id}</p>
+              </div>
+            </div>
+
+            {/* Balances */}
+            <div className="grid grid-cols-2 gap-4 p-4 bg-card rounded-lg border">
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">GC BALANCE</p>
+                <p className="text-2xl font-black">{Number(selectedPlayer.gc_balance).toLocaleString()}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">SC BALANCE</p>
+                <p className="text-2xl font-black text-green-500">{Number(selectedPlayer.sc_balance).toFixed(2)}</p>
+              </div>
+            </div>
+
+            {/* Account Timeline */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">JOINED</p>
+                <p className="text-sm">{new Date(selectedPlayer.created_at).toLocaleDateString()}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">LAST LOGIN</p>
+                <p className="text-sm">{selectedPlayer.last_login ? new Date(selectedPlayer.last_login).toLocaleDateString() : 'Never'}</p>
+              </div>
+            </div>
+
+            {/* Gaming Stats */}
+            <div className="grid grid-cols-3 gap-4 p-4 bg-card rounded-lg border">
+              <div className="text-center">
+                <p className="text-xs font-medium text-muted-foreground">GAMES PLAYED</p>
+                <p className="text-2xl font-black">{selectedPlayer.games_played || 0}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs font-medium text-muted-foreground">TOTAL WAGERED</p>
+                <p className="text-2xl font-black">${Number(selectedPlayer.total_wagered || 0).toFixed(2)}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs font-medium text-muted-foreground">TOTAL WON</p>
+                <p className="text-2xl font-black text-green-500">${Number(selectedPlayer.total_won || 0).toFixed(2)}</p>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="flex gap-2 pt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleBalanceUpdate(selectedPlayer)}
+                disabled={isSaving}
+              >
+                Update Balance
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleStatusChange(selectedPlayer.username, selectedPlayer.status === 'Active' ? 'Suspended' : 'Active')}
+                disabled={isSaving}
+              >
+                {selectedPlayer.status === 'Active' ? 'Suspend' : 'Activate'}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedPlayer(null)}
+              >
+                Close
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
