@@ -18,10 +18,16 @@ export const RecentWinners = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchWinners = async () => {
+      if (!isMounted) return;
+
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        const timeoutId = setTimeout(() => {
+          // Abort with a clear reason
+          controller.abort();
+        }, 30000); // Increased to 30 second timeout to allow slower responses
 
         const response = await fetch('/api/platform/winners', {
           signal: controller.signal,
@@ -37,11 +43,15 @@ export const RecentWinners = () => {
         }
         const result = await response.json();
         if (result.success && result.data && Array.isArray(result.data)) {
-          setWinners(result.data);
+          if (isMounted) {
+            setWinners(result.data);
+          }
         } else {
           console.warn('Unexpected response format from winners endpoint:', result);
         }
       } catch (error) {
+        if (!isMounted) return;
+
         if (error instanceof Error) {
           if (error.name === 'AbortError') {
             console.error('Failed to fetch recent winners: Request timeout');
@@ -51,10 +61,10 @@ export const RecentWinners = () => {
         } else {
           console.error('Failed to fetch recent winners:', error);
         }
-        // Don't set loading to false on error - let the component show loading state
-        // This prevents flashing errors
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -62,6 +72,7 @@ export const RecentWinners = () => {
     // Refresh every 2 minutes instead of 1 to reduce server load
     const interval = setInterval(fetchWinners, 120000);
     return () => {
+      isMounted = false;
       clearInterval(interval);
     };
   }, []);

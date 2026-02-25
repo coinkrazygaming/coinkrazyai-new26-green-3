@@ -82,65 +82,40 @@ export const getPlatformStats: RequestHandler = async (req, res) => {
 
 export const getRecentWinners: RequestHandler = async (req, res) => {
   try {
+    // Use a UNION query to get winners from all sources in a single optimized query
+    const winnersQuery = `
+      (SELECT sr.winnings as amount, g.name as game, p.username, sr.created_at, 'SC' as currency
+       FROM slots_results sr
+       JOIN games g ON sr.game_id = g.id
+       JOIN players p ON sr.player_id = p.id
+       WHERE sr.winnings > 1)
+      UNION ALL
+      (SELECT wr.win_amount as amount, g.name as game, p.username, wr.created_at, 'SC' as currency
+       FROM game_results wr
+       JOIN games g ON wr.game_id = g.id
+       JOIN players p ON wr.player_id = p.id
+       WHERE wr.win_amount > 1 AND wr.status = 'win')
+      UNION ALL
+      (SELECT br.winnings as amount, g.name as game, p.username, br.created_at, 'SC' as currency
+       FROM bingo_results br
+       JOIN games g ON br.game_id = g.id
+       JOIN players p ON br.player_id = p.id
+       WHERE br.winnings > 1)
+      ORDER BY created_at DESC
+      LIMIT 15
+    `;
+
     let allWinners: any[] = [];
-
-    // Try to get recent big wins from slots
     try {
-      const slotsWins = await query(
-        `SELECT sr.winnings as amount, g.name as game, p.username, sr.created_at, 'SC' as currency
-         FROM slots_results sr
-         JOIN games g ON sr.game_id = g.id
-         JOIN players p ON sr.player_id = p.id
-         WHERE sr.winnings > 1
-         ORDER BY sr.created_at DESC
-         LIMIT 10`
-      );
-      if (slotsWins.rows && slotsWins.rows.length > 0) {
-        allWinners.push(...slotsWins.rows);
-      }
-    } catch (slotErr) {
-      console.warn('Failed to fetch slots wins:', slotErr instanceof Error ? slotErr.message : 'Unknown error');
+      const result = await query(winnersQuery);
+      allWinners = result.rows || [];
+    } catch (err) {
+      console.warn('Failed to fetch winners from database:', err instanceof Error ? err.message : 'Unknown error');
+      // Continue with fallback data
     }
 
-    // Try to get recent big wins from game_results (more recent table)
-    try {
-      const gameResults = await query(
-        `SELECT wr.win_amount as amount, g.name as game, p.username, wr.created_at, 'SC' as currency
-         FROM game_results wr
-         JOIN games g ON wr.game_id = g.id
-         JOIN players p ON wr.player_id = p.id
-         WHERE wr.win_amount > 1 AND wr.status = 'win'
-         ORDER BY wr.created_at DESC
-         LIMIT 10`
-      );
-      if (gameResults.rows && gameResults.rows.length > 0) {
-        allWinners.push(...gameResults.rows);
-      }
-    } catch (gameErr) {
-      console.warn('Failed to fetch game results:', gameErr instanceof Error ? gameErr.message : 'Unknown error');
-    }
-
-    // Try to get recent big wins from bingo
-    try {
-      const bingoWins = await query(
-        `SELECT br.winnings as amount, g.name as game, p.username, br.created_at, 'SC' as currency
-         FROM bingo_results br
-         JOIN games g ON br.game_id = g.id
-         JOIN players p ON br.player_id = p.id
-         WHERE br.winnings > 1
-         ORDER BY br.created_at DESC
-         LIMIT 10`
-      );
-      if (bingoWins.rows && bingoWins.rows.length > 0) {
-        allWinners.push(...bingoWins.rows);
-      }
-    } catch (bingoErr) {
-      console.warn('Failed to fetch bingo wins:', bingoErr instanceof Error ? bingoErr.message : 'Unknown error');
-    }
-
-    // Sort and format the combined results
+    // Format the results
     const formattedWinners = allWinners
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 10)
       .map((w, i) => ({
         id: i + 1,
