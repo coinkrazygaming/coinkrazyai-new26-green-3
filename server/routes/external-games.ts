@@ -294,7 +294,7 @@ export const handleGetExternalGames: RequestHandler = async (req, res) => {
         gc.min_bet, gc.max_bet, gc.currency
       FROM games g
       LEFT JOIN game_compliance gc ON g.id = gc.game_id
-      WHERE g.enabled = TRUE AND (gc.is_external = TRUE OR gc.is_external IS NULL)
+      WHERE g.enabled = TRUE AND gc.is_external = TRUE
       ORDER BY g.name ASC`
     );
 
