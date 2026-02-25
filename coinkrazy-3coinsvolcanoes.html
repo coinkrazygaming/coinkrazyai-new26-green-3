@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoinKrazy-3CoinsVolcanoes | PlayCoinKrazy.com</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a0a2e 0%, #0f051b 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+            color: #fff;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 600px;
+            background: linear-gradient(135deg, #2a1447 0%, #1a0a2e 100%);
+            border-radius: 20px;
+            box-shadow: 0 0 40px rgba(255, 165, 0, 0.3), 0 0 80px rgba(255, 69, 0, 0.2);
+            padding: 20px;
+            border: 3px solid rgba(255, 165, 0, 0.5);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .game-title {
+            font-size: 28px;
+            font-weight: bold;
+            background: linear-gradient(90deg, #FFD700, #FFA500, #FF6347);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+            margin: 0 0 5px 0;
+            font-style: italic;
+            letter-spacing: 2px;
+        }
+
+        .branding {
+            font-size: 12px;
+            color: #FFA500;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            opacity: 0.8;
+        }
+
+        .game-stats {
+            display: flex;
+            justify-content: space-around;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        .stat-box {
+            flex: 1;
+            min-width: 100px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid #FFD700;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            box-shadow: inset 0 0 10px rgba(255, 215, 0, 0.2);
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: #FFA500;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #FFD700;
+        }
+
+        .reels-container {
+            position: relative;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1410 100%);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 20px 0;
+            border: 3px solid #FF6347;
+            box-shadow: inset 0 0 20px rgba(255, 69, 0, 0.3), 0 0 20px rgba(255, 69, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .volcanoes-area {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .volcano {
+            position: absolute;
+            width: 80px;
+            height: 60px;
+            font-size: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            filter: drop-shadow(0 0 10px rgba(255, 100, 0, 0.6));
+        }
+
+        .volcano:nth-child(1) { left: 10%; }
+        .volcano:nth-child(2) { left: 45%; }
+        .volcano:nth-child(3) { right: 10%; }
+
+        .volcano-anim {
+            animation: volcanoErupt 0.6s ease-out;
+        }
+
+        @keyframes volcanoErupt {
+            0% { transform: scale(1) rotate(0deg); }
+            25% { transform: scale(1.15) rotate(5deg); }
+            50% { transform: scale(1.2) rotate(-5deg); }
+            75% { transform: scale(1.15) rotate(3deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+
+        .reels-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            padding-top: 15px;
+            margin-bottom: 10px;
+        }
+
+        .reel {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, #2a2420 0%, #1a1410 100%);
+            border: 2px solid #FFD700;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            cursor: pointer;
+            box-shadow: inset 0 0 15px rgba(255, 215, 0, 0.2), 0 0 10px rgba(255, 69, 0, 0.2);
+            transition: all 0.1s ease;
+            min-height: 80px;
+        }
+
+        .reel:hover:not(.spinning) {
+            transform: scale(1.05);
+            box-shadow: inset 0 0 15px rgba(255, 215, 0, 0.4), 0 0 20px rgba(255, 69, 0, 0.4);
+        }
+
+        .reel.spinning {
+            animation: shakeReel 0.05s infinite;
+        }
+
+        @keyframes shakeReel {
+            0%, 100% { transform: translateY(0px) rotateZ(0deg); }
+            25% { transform: translateY(-2px) rotateZ(-1deg); }
+            50% { transform: translateY(2px) rotateZ(1deg); }
+            75% { transform: translateY(-2px) rotateZ(-1deg); }
+        }
+
+        .hold-indicator {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #FF6347;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            display: none;
+            z-index: 5;
+            box-shadow: 0 0 10px #FF6347;
+        }
+
+        .hold-indicator.active {
+            display: block;
+            animation: pulse 0.6s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .multiplier-badge {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: bold;
+            display: none;
+            z-index: 5;
+        }
+
+        .multiplier-badge.active {
+            display: block;
+        }
+
+        .symbol-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 10px;
+            color: rgba(255, 215, 0, 0.6);
+            font-weight: bold;
+            pointer-events: none;
+        }
+
+        .super-wheel-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .super-wheel-container.active {
+            display: flex;
+        }
+
+        .wheel-canvas {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.6);
+        }
+
+        .wheel-title {
+            font-size: 24px;
+            color: #FFD700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-label {
+            font-size: 12px;
+            color: #FFA500;
+            text-transform: uppercase;
+            min-width: 70px;
+            letter-spacing: 1px;
+        }
+
+        .line-selector, .bet-selector {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .line-btn, .bet-btn {
+            flex: 1;
+            min-width: 45px;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid #FFD700;
+            color: #FFD700;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .line-btn:hover, .bet-btn:hover {
+            background: rgba(255, 215, 0, 0.1);
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+        }
+
+        .line-btn.active, .bet-btn.active {
+            background: #FFD700;
+            color: #000;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+        }
+
+        .spin-button {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            border: none;
+            color: #000;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 0 #FF6347, 0 0 30px rgba(255, 215, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .spin-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 0 #FF6347, 0 0 40px rgba(255, 215, 0, 0.6);
+        }
+
+        .spin-button:active:not(:disabled) {
+            transform: translateY(6px);
+            box-shadow: 0 2px 0 #FF6347, 0 0 20px rgba(255, 215, 0, 0.4);
+        }
+
+        .spin-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .play-coincrazy {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 11px;
+            color: #000;
+            font-weight: bold;
+            opacity: 0.7;
+        }
+
+        .bonus-info {
+            background: rgba(255, 100, 0, 0.1);
+            border-left: 4px solid #FF6347;
+            padding: 10px;
+            margin: 15px 0;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #FFD700;
+            display: none;
+        }
+
+        .bonus-info.active {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .win-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #2a1447 0%, #1a0a2e 100%);
+            border: 3px solid #FFD700;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 90%;
+            width: 100%;
+            max-width: 450px;
+            z-index: 2000;
+            box-shadow: 0 0 60px rgba(255, 215, 0, 0.6), 0 0 120px rgba(255, 69, 0, 0.4);
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+            text-align: center;
+            animation: popupBounce 0.5s ease;
+        }
+
+        .win-popup.active {
+            display: flex;
+        }
+
+        @keyframes popupBounce {
+            0% { transform: translate(-50%, -50%) scale(0.3); }
+            50% { transform: translate(-50%, -50%) scale(1.05); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1900;
+            display: none;
+        }
+
+        .popup-overlay.active {
+            display: block;
+        }
+
+        .win-title {
+            font-size: 28px;
+            color: #FFD700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+        }
+
+        .win-amount {
+            font-size: 48px;
+            font-weight: bold;
+            background: linear-gradient(90deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .win-subtitle {
+            font-size: 14px;
+            color: #FFA500;
+            letter-spacing: 1px;
+        }
+
+        .popup-buttons {
+            display: flex;
+            gap: 12px;
+            flex-direction: column;
+            margin-top: 10px;
+        }
+
+        .popup-button {
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-claim {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #000;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+        }
+
+        .btn-claim:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+        }
+
+        .btn-share {
+            background: rgba(255, 100, 0, 0.2);
+            color: #FFD700;
+            border: 2px solid #FF6347;
+            box-shadow: 0 0 15px rgba(255, 69, 0, 0.3);
+        }
+
+        .btn-share:hover {
+            background: rgba(255, 100, 0, 0.3);
+            box-shadow: 0 0 25px rgba(255, 69, 0, 0.5);
+        }
+
+        .share-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2100;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .share-panel.active {
+            display: flex;
+        }
+
+        .share-content {
+            background: linear-gradient(135deg, #2a1447 0%, #1a0a2e 100%);
+            border: 3px solid #FFD700;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 0 60px rgba(255, 215, 0, 0.6);
+            animation: popupBounce 0.5s ease;
+        }
+
+        .share-title {
+            font-size: 22px;
+            color: #FFD700;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .share-text {
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid #FFD700;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+            font-size: 12px;
+            color: #FFA500;
+            line-height: 1.5;
+            max-height: 150px;
+            overflow-y: auto;
+            word-break: break-word;
+        }
+
+        .share-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .share-btn {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .share-btn-fb {
+            background: #1877F2;
+            color: white;
+        }
+
+        .share-btn-fb:hover {
+            background: #0a66c2;
+            box-shadow: 0 0 20px rgba(24, 119, 242, 0.4);
+        }
+
+        .share-btn-x {
+            background: #000;
+            color: white;
+            border: 2px solid #fff;
+        }
+
+        .share-btn-x:hover {
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .share-btn-copy {
+            background: rgba(255, 215, 0, 0.2);
+            color: #FFD700;
+            border: 2px solid #FFD700;
+        }
+
+        .share-btn-copy:hover {
+            background: rgba(255, 215, 0, 0.3);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+        }
+
+        .share-btn-close {
+            background: rgba(255, 100, 0, 0.2);
+            color: #FF6347;
+            border: 2px solid #FF6347;
+            margin-top: 10px;
+        }
+
+        .share-btn-close:hover {
+            background: rgba(255, 100, 0, 0.3);
+            box-shadow: 0 0 20px rgba(255, 69, 0, 0.3);
+        }
+
+        .error-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #2a1447 0%, #1a0a2e 100%);
+            border: 3px solid #FF6347;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 400px;
+            z-index: 2000;
+            text-align: center;
+            display: none;
+            flex-direction: column;
+            gap: 15px;
+            animation: popupBounce 0.5s ease;
+        }
+
+        .error-popup.active {
+            display: flex;
+        }
+
+        .error-title {
+            font-size: 22px;
+            color: #FF6347;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .error-message {
+            font-size: 14px;
+            color: #FFA500;
+            line-height: 1.5;
+        }
+
+        .error-close-btn {
+            padding: 12px;
+            background: #FF6347;
+            border: none;
+            color: white;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .error-close-btn:hover {
+            box-shadow: 0 0 20px rgba(255, 69, 0, 0.4);
+        }
+
+        .respin-counter {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 100, 0, 0.8);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            box-shadow: 0 0 15px rgba(255, 69, 0, 0.6);
+            display: none;
+            z-index: 20;
+        }
+
+        .respin-counter.active {
+            display: block;
+        }
+
+        .sound-toggle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 215, 0, 0.2);
+            border: 2px solid #FFD700;
+            color: #FFD700;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            z-index: 50;
+        }
+
+        .sound-toggle:hover {
+            background: rgba(255, 215, 0, 0.3);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+        }
+
+        .bonus-features-display {
+            background: rgba(255, 100, 0, 0.1);
+            border: 2px solid #FF6347;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            display: none;
+        }
+
+        .bonus-features-display.active {
+            display: flex;
+        }
+
+        .feature-badge {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #000;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+        }
+
+        @media (max-width: 480px) {
+            .game-container {
+                padding: 15px;
+            }
+
+            .game-title {
+                font-size: 22px;
+            }
+
+            .stat-box {
+                min-width: 80px;
+            }
+
+            .stat-value {
+                font-size: 16px;
+            }
+
+            .reel {
+                font-size: 28px;
+                min-height: 70px;
+            }
+
+            .spin-button {
+                padding: 14px;
+                font-size: 16px;
+            }
+
+            .win-popup {
+                padding: 25px;
+            }
+
+            .win-title {
+                font-size: 22px;
+            }
+
+            .win-amount {
+                font-size: 36px;
+            }
+
+            .share-content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="game-title">🌋 CoinKrazy-3CoinsVolcanoes 🌋</div>
+            <div class="branding">CoinKrazy Studios • PlayCoinKrazy.com</div>
+            <button class="sound-toggle" id="soundToggle">🔊</button>
+        </div>
+
+        <!-- Game Stats -->
+        <div class="game-stats">
+            <div class="stat-box">
+                <div class="stat-label">Balance</div>
+                <div class="stat-value" id="balanceDisplay">0.00 SC</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Bet</div>
+                <div class="stat-value" id="betDisplay">0.10 SC</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Total Win</div>
+                <div class="stat-value" id="winDisplay">0.00 SC</div>
+            </div>
+        </div>
+
+        <!-- Reels -->
+        <div class="reels-container">
+            <div class="volcanoes-area" id="volcanoesArea">
+                <div class="volcano">🌋</div>
+                <div class="volcano">🌋</div>
+                <div class="volcano">🌋</div>
+            </div>
+            <div class="reels-grid" id="reelsGrid"></div>
+            <div class="respin-counter" id="respinCounter">Respins: 0</div>
+            <div class="bonus-info" id="bonusInfo">
+                <strong>HOLD & WIN BONUS ACTIVATED!</strong> Collect symbols and respins to win big! Activate volcano features for massive multipliers.
+            </div>
+            <div class="bonus-features-display" id="bonusFeatures"></div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="control-group">
+                <span class="control-label">Lines:</span>
+                <div class="line-selector" id="lineSelector"></div>
+            </div>
+
+            <div class="control-group">
+                <span class="control-label">Bet:</span>
+                <div class="bet-selector" id="betSelector"></div>
+            </div>
+
+            <button class="spin-button" id="spinButton">
+                <span class="play-coincrazy">PlayCoinKrazy.com</span>
+                ⚡ SPIN ⚡
+            </button>
+        </div>
+    </div>
+
+    <!-- Super Wheel Container -->
+    <div class="super-wheel-container" id="superWheelContainer">
+        <div class="wheel-title">SUPER WHEEL</div>
+        <canvas class="wheel-canvas" id="wheelCanvas"></canvas>
+    </div>
+
+    <!-- Popups -->
+    <div class="popup-overlay" id="popupOverlay"></div>
+    <div class="win-popup" id="winPopup">
+        <div class="win-title">🎉 Congrats You Won! 🎉</div>
+        <div class="win-amount" id="winAmount">0.00 SC</div>
+        <div class="win-subtitle">Share with your friends!</div>
+        <div class="popup-buttons">
+            <button class="popup-button btn-claim" id="claimBtn">Claim & Continue</button>
+            <button class="popup-button btn-share" id="shareBtn">Share on Social!</button>
+        </div>
+    </div>
+
+    <div class="share-panel" id="sharePanel">
+        <div class="share-content">
+            <div class="share-title">Share Your Win!</div>
+            <div class="share-text" id="shareText">I just won X SC playing CoinKrazy-3CoinsVolcanoes on PlayCoinKrazy.com! 🔥🌋 Join me and win big!</div>
+            <div class="share-buttons">
+                <button class="share-btn share-btn-fb" id="shareFbBtn">Post to Facebook</button>
+                <button class="share-btn share-btn-x" id="shareXBtn">Share on X</button>
+                <button class="share-btn share-btn-copy" id="shareCopyBtn">Copy Text & Link</button>
+                <button class="share-btn share-btn-close" id="shareCloseBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="error-popup" id="errorPopup">
+        <div class="error-title">⚠️ Error</div>
+        <div class="error-message" id="errorMessage">Something went wrong. Please try again.</div>
+        <button class="error-close-btn" id="errorCloseBtn">Close</button>
+    </div>
+
+    <script>
+        // ============================================================================
+        // GAME STATE & CONFIG
+        // ============================================================================
+        const gameConfig = {
+            reels: 4,
+            rows: 3,
+            paylines: 3,
+            betOptions: [0.01, 0.05, 0.10, 0.25, 0.50, 1.00, 2.50, 5.00],
+            maxSingleWin: 10.00,
+            respinInitial: 3,
+            wheelSegments: 8,
+        };
+
+        const symbols = {
+            COIN_GOLD: { value: 5, emoji: '🪙', name: 'Gold Coin' },
+            COIN_RED: { value: 3, emoji: '💎', name: 'Red Coin' },
+            LAVA: { value: 2, emoji: '🔥', name: 'Lava' },
+            VOLCANO: { value: 1, emoji: '⚡', name: 'Volcano' },
+            BONUS: { value: 0, emoji: '👑', name: 'Bonus', bonus: true },
+            MYSTERY: { value: 0, emoji: '✨', name: 'Mystery', mystery: true },
+            MYSTERY_JACK: { value: 0, emoji: '💫', name: 'Mystery Jackpot', mystery: true },
+            COLLECT: { value: 0, emoji: '🎁', name: 'Collect', collect: true },
+            WILD: { value: 10, emoji: '⭐', name: 'Wild' },
+            MINI_JACK: { value: 0, emoji: '💰', name: 'Mini Jackpot', jackpot: true },
+            MINOR_JACK: { value: 0, emoji: '🏆', name: 'Minor Jackpot', jackpot: true },
+            MAJOR_JACK: { value: 0, emoji: '👑', name: 'Major Jackpot', jackpot: true },
+            LIFE: { value: 0, emoji: '❤️', name: 'Life', feature: true },
+            GROW: { value: 0, emoji: '📈', name: 'Grow', feature: true },
+            MULTI: { value: 0, emoji: '✕', name: 'Multi', feature: true },
+        };
+
+        const wheelRewards = [
+            { label: 'Gold Volcano 5x', multiplier: 5, icon: '🌋' },
+            { label: 'Extra Respin', respins: 1, icon: '♻️' },
+            { label: '2x Multiplier', multiplier: 2, icon: '✕2' },
+            { label: 'Mini Jackpot', value: 0.25, icon: '💰' },
+            { label: 'GROW Feature', feature: 'GROW', icon: '📈' },
+            { label: '3x Multiplier', multiplier: 3, icon: '✕3' },
+            { label: 'Free Respin', respins: 1, icon: '♻️' },
+            { label: 'Mystery Award', mystery: true, icon: '❓' },
+        ];
+
+        let gameState = {
+            balance: 0,
+            bet: 0.10,
+            activeLines: 3,
+            currentWin: 0,
+            spinning: false,
+            bonusActive: false,
+            respins: 0,
+            reelValues: Array(12).fill(null),
+            heldReels: new Set(),
+            multipliers: Array(12).fill(1),
+            bonusFeatures: [],
+            soundEnabled: true,
+        };
+
+        // ============================================================================
+        // WALLET API INTEGRATION
+        // ============================================================================
+        const walletAPI = {
+            getBalance: async () => {
+                try {
+                    if (typeof window.getCurrentSCBalance === 'function') {
+                        return await window.getCurrentSCBalance();
+                    }
+                    console.warn('getCurrentSCBalance not available');
+                    return 0;
+                } catch (err) {
+                    console.error('Wallet balance error:', err);
+                    throw err;
+                }
+            },
+
+            deduct: async (amount, gameId = 'CoinKrazy-3CoinsVolcanoes') => {
+                try {
+                    if (typeof window.deductFromWallet === 'function') {
+                        return await window.deductFromWallet(amount, gameId);
+                    }
+                    console.warn('deductFromWallet not available');
+                    return true;
+                } catch (err) {
+                    console.error('Wallet deduction error:', err);
+                    throw err;
+                }
+            },
+
+            add: async (amount, gameId = 'CoinKrazy-3CoinsVolcanoes') => {
+                try {
+                    if (typeof window.addToWallet === 'function') {
+                        return await window.addToWallet(amount, gameId);
+                    }
+                    console.warn('addToWallet not available');
+                    return true;
+                } catch (err) {
+                    console.error('Wallet add error:', err);
+                    throw err;
+                }
+            },
+
+            logTransaction: async (type, amount, gameId = 'CoinKrazy-3CoinsVolcanoes') => {
+                try {
+                    if (typeof window.logTransaction === 'function') {
+                        return await window.logTransaction(type, amount, gameId);
+                    }
+                    console.warn('logTransaction not available');
+                    return true;
+                } catch (err) {
+                    console.error('Wallet transaction log error:', err);
+                    throw err;
+                }
+            },
+
+            getPlayerId: () => {
+                if (typeof window.getPlayerId === 'function') {
+                    return window.getPlayerId();
+                }
+                return 'unknown';
+            },
+        };
+
+        // ============================================================================
+        // UI INITIALIZATION
+        // ============================================================================
+        function initializeUI() {
+            initializeReels();
+            initializeLines();
+            initializeBets();
+            loadBalance();
+            setupEventListeners();
+        }
+
+        function initializeReels() {
+            const grid = document.getElementById('reelsGrid');
+            grid.innerHTML = '';
+            for (let i = 0; i < gameConfig.reels * gameConfig.rows; i++) {
+                const reel = document.createElement('div');
+                reel.className = 'reel';
+                reel.id = `reel-${i}`;
+                grid.appendChild(reel);
+            }
+            populateReels();
+        }
+
+        function initializeLines() {
+            const selector = document.getElementById('lineSelector');
+            selector.innerHTML = '';
+            for (let i = 1; i <= gameConfig.paylines; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'line-btn' + (i === gameState.activeLines ? ' active' : '');
+                btn.textContent = `${i}`;
+                btn.onclick = () => selectLines(i);
+                selector.appendChild(btn);
+            }
+        }
+
+        function initializeBets() {
+            const selector = document.getElementById('betSelector');
+            selector.innerHTML = '';
+            gameConfig.betOptions.forEach(bet => {
+                const btn = document.createElement('button');
+                btn.className = 'bet-btn' + (Math.abs(bet - gameState.bet) < 0.01 ? ' active' : '');
+                btn.textContent = bet.toFixed(2);
+                btn.onclick = () => selectBet(bet);
+                selector.appendChild(btn);
+            });
+        }
+
+        // ============================================================================
+        // EVENT LISTENERS
+        // ============================================================================
+        function setupEventListeners() {
+            document.getElementById('spinButton').addEventListener('click', spin);
+            document.getElementById('claimBtn').addEventListener('click', claimWin);
+            document.getElementById('shareBtn').addEventListener('click', showSharePanel);
+            document.getElementById('shareFbBtn').addEventListener('click', shareFacebook);
+            document.getElementById('shareXBtn').addEventListener('click', shareX);
+            document.getElementById('shareCopyBtn').addEventListener('click', copyShareText);
+            document.getElementById('shareCloseBtn').addEventListener('click', closeSharePanel);
+            document.getElementById('errorCloseBtn').addEventListener('click', closeErrorPopup);
+            document.getElementById('soundToggle').addEventListener('click', toggleSound);
+        }
+
+        function selectLines(count) {
+            gameState.activeLines = count;
+            document.querySelectorAll('.line-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i + 1 === count);
+            });
+        }
+
+        function selectBet(amount) {
+            gameState.bet = amount;
+            document.querySelectorAll('.bet-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', Math.abs(gameConfig.betOptions[i] - amount) < 0.01);
+            });
+            updateBetDisplay();
+        }
+
+        // ============================================================================
+        // REEL MECHANICS
+        // ============================================================================
+        function populateReels() {
+            const symbolArray = Object.values(symbols);
+            for (let i = 0; i < gameConfig.reels * gameConfig.rows; i++) {
+                const symbol = symbolArray[Math.floor(Math.random() * symbolArray.length)];
+                gameState.reelValues[i] = symbol;
+                updateReelDisplay(i, symbol);
+            }
+        }
+
+        function updateReelDisplay(index, symbol, multiplier = 1) {
+            const reel = document.getElementById(`reel-${index}`);
+            if (!reel) return;
+            reel.textContent = symbol.emoji;
+            reel.dataset.symbol = Object.keys(symbols).find(k => symbols[k] === symbol);
+
+            // Update multiplier badge
+            const badge = reel.querySelector('.multiplier-badge') || document.createElement('div');
+            if (multiplier > 1) {
+                badge.className = 'multiplier-badge active';
+                badge.textContent = `${multiplier}x`;
+                if (!reel.contains(badge)) reel.appendChild(badge);
+            } else {
+                badge.classList.remove('active');
+            }
+
+            // Update symbol value if needed
+            const valueDisplay = reel.querySelector('.symbol-value');
+            if (symbol.value > 0) {
+                if (!valueDisplay) {
+                    const val = document.createElement('div');
+                    val.className = 'symbol-value';
+                    reel.appendChild(val);
+                }
+            }
+        }
+
+        // ============================================================================
+        // MAIN SPIN LOGIC
+        // ============================================================================
+        async function spin() {
+            if (gameState.spinning || gameState.bonusActive) return;
+            if (gameState.balance < gameState.bet) {
+                showError('Insufficient balance to place bet');
+                return;
+            }
+
+            gameState.spinning = true;
+            document.getElementById('spinButton').disabled = true;
+
+            try {
+                // Deduct bet from wallet
+                await walletAPI.deduct(gameState.bet);
+                gameState.balance -= gameState.bet;
+                updateBalanceDisplay();
+                await walletAPI.logTransaction('spin', -gameState.bet);
+
+                // Spin animation
+                animateReelSpin();
+                await new Promise(r => setTimeout(r, 2000));
+
+                // Generate results
+                const symbolArray = Object.values(symbols).filter(s => !s.bonus && !s.mystery && !s.feature);
+                for (let i = 0; i < gameConfig.reels * gameConfig.rows; i++) {
+                    gameState.reelValues[i] = symbolArray[Math.floor(Math.random() * symbolArray.length)];
+                    gameState.multipliers[i] = 1;
+                    updateReelDisplay(i, gameState.reelValues[i]);
+                }
+
+                // Check for bonus trigger (4+ bonus symbols)
+                const bonusCount = gameState.reelValues.filter(r => r.bonus).length;
+                if (bonusCount >= 4) {
+                    await activateHoldWinBonus();
+                } else {
+                    gameState.spinning = false;
+                    document.getElementById('spinButton').disabled = false;
+                }
+            } catch (err) {
+                console.error('Spin error:', err);
+                showError('Failed to process spin. Please try again.');
+                gameState.spinning = false;
+                document.getElementById('spinButton').disabled = false;
+            }
+        }
+
+        function animateReelSpin() {
+            document.querySelectorAll('.reel').forEach(reel => {
+                reel.classList.add('spinning');
+            });
+            playSound('spin');
+        }
+
+        function stopReelSpin() {
+            document.querySelectorAll('.reel').forEach(reel => {
+                reel.classList.remove('spinning');
+            });
+        }
+
+        // ============================================================================
+        // HOLD & WIN BONUS
+        // ============================================================================
+        async function activateHoldWinBonus() {
+            gameState.bonusActive = true;
+            gameState.respins = gameConfig.respinInitial;
+            gameState.bonusFeatures = [];
+            gameState.heldReels.clear();
+
+            // Show bonus info
+            document.getElementById('bonusInfo').classList.add('active');
+            document.getElementById('respinCounter').classList.add('active');
+            updateRespinCounter();
+
+            // Trigger super wheel
+            await triggerSuperWheel();
+
+            // Start respins
+            await startBonusRespins();
+
+            stopReelSpin();
+            gameState.bonusActive = false;
+            document.getElementById('bonusInfo').classList.remove('active');
+            document.getElementById('respinCounter').classList.remove('active');
+
+            // Calculate and show total win
+            gameState.currentWin = calculateBonusWin();
+            if (gameState.currentWin > 0) {
+                showWinPopup();
+            }
+
+            gameState.spinning = false;
+            document.getElementById('spinButton').disabled = false;
+        }
+
+        async function startBonusRespins() {
+            while (gameState.respins > 0) {
+                await new Promise(r => setTimeout(r, 2000));
+
+                if (gameState.respins <= 0) break;
+
+                // Spin held reels
+                animateReelSpin();
+                await new Promise(r => setTimeout(r, 1500));
+
+                // Generate new symbols for non-held reels
+                const bonusSymbols = [symbols.COLLECT, symbols.MYSTERY, symbols.MYSTERY_JACK, symbols.LIFE, symbols.GROW, symbols.MULTI];
+                for (let i = 0; i < gameConfig.reels * gameConfig.rows; i++) {
+                    if (!gameState.heldReels.has(i)) {
+                        const newSymbol = bonusSymbols[Math.floor(Math.random() * bonusSymbols.length)];
+                        gameState.reelValues[i] = newSymbol;
+                        updateReelDisplay(i, newSymbol);
+                    }
+                }
+
+                stopReelSpin();
+
+                // Check for new bonus symbols and process features
+                processNewBonusSymbols();
+
+                // Decrement respins only if no new symbols
+                if (!hasNewBonusSymbols()) {
+                    gameState.respins--;
+                }
+
+                updateRespinCounter();
+            }
+        }
+
+        function hasNewBonusSymbols() {
+            return gameState.reelValues.some((r, i) => !gameState.heldReels.has(i) && (r.collect || r.feature));
+        }
+
+        function processNewBonusSymbols() {
+            gameState.reelValues.forEach((symbol, i) => {
+                if (symbol.collect) {
+                    gameState.heldReels.add(i);
+                    const badge = document.getElementById(`reel-${i}`).querySelector('.hold-indicator') || document.createElement('div');
+                    badge.className = 'hold-indicator active';
+                    if (!document.getElementById(`reel-${i}`).contains(badge)) {
+                        document.getElementById(`reel-${i}`).appendChild(badge);
+                    }
+                    playSound('collect');
+                }
+                if (symbol.feature) {
+                    gameState.bonusFeatures.push(symbol.name);
+                    applyFeature(symbol);
+                }
+            });
+        }
+
+        function applyFeature(symbol) {
+            playSound('bonus');
+            triggerVolcanoEruption();
+
+            if (symbol.name === 'LIFE') {
+                gameState.respins++;
+                updateRespinCounter();
+            } else if (symbol.name === 'MULTI') {
+                gameState.reelValues.forEach((_, i) => {
+                    if (gameState.heldReels.has(i)) {
+                        gameState.multipliers[i] = Math.min(gameState.multipliers[i] + 1, 6);
+                        updateReelDisplay(i, gameState.reelValues[i], gameState.multipliers[i]);
+                    }
+                });
+            } else if (symbol.name === 'GROW') {
+                // GROW adds 2 extra rows (4x5 grid) - simulated by respins
+                gameState.respins += 2;
+                updateRespinCounter();
+            }
+        }
+
+        function triggerVolcanoEruption() {
+            const volcanoes = document.querySelectorAll('.volcano');
+            const randomVolcano = volcanoes[Math.floor(Math.random() * volcanoes.length)];
+            randomVolcano.classList.add('volcano-anim');
+            setTimeout(() => randomVolcano.classList.remove('volcano-anim'), 600);
+            playSound('erupt');
+        }
+
+        function updateRespinCounter() {
+            document.getElementById('respinCounter').textContent = `Respins: ${gameState.respins}`;
+        }
+
+        // ============================================================================
+        // SUPER WHEEL
+        // ============================================================================
+        async function triggerSuperWheel() {
+            return new Promise((resolve) => {
+                const container = document.getElementById('superWheelContainer');
+                container.classList.add('active');
+                const canvas = document.getElementById('wheelCanvas');
+
+                drawWheel(canvas);
+                spinWheelAnimation(canvas, () => {
+                    const reward = wheelRewards[Math.floor(Math.random() * wheelRewards.length)];
+                    processWheelReward(reward);
+                    setTimeout(() => {
+                        container.classList.remove('active');
+                        resolve();
+                    }, 1000);
+                });
+            });
+        }
+
+        function drawWheel(canvas) {
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = 130;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw segments
+            wheelRewards.forEach((reward, i) => {
+                const startAngle = (i / gameConfig.wheelSegments) * Math.PI * 2;
+                const endAngle = ((i + 1) / gameConfig.wheelSegments) * Math.PI * 2;
+
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                ctx.closePath();
+                ctx.fillStyle = i % 2 === 0 ? '#FFD700' : '#FFA500';
+                ctx.fill();
+                ctx.strokeStyle = '#FF6347';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Draw text
+                const angle = (startAngle + endAngle) / 2;
+                const x = centerX + Math.cos(angle) * (radius * 0.65);
+                const y = centerY + Math.sin(angle) * (radius * 0.65);
+                ctx.fillStyle = '#000';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(reward.icon, x, y);
+            });
+
+            // Draw center
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 15, 0, Math.PI * 2);
+            ctx.fillStyle = '#FFD700';
+            ctx.fill();
+            ctx.strokeStyle = '#FF6347';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        function spinWheelAnimation(canvas, callback) {
+            let rotation = 0;
+            const finalRotation = Math.random() * 360 + 720; // At least 2 full spins
+            let currentRotation = 0;
+            const duration = 3000; // 3 seconds
+            const startTime = Date.now();
+
+            function animate() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Ease out cubic
+                const easeProgress = 1 - Math.pow(1 - progress, 3);
+                currentRotation = finalRotation * easeProgress;
+
+                canvas.style.transform = `rotate(${currentRotation}deg)`;
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    callback();
+                }
+            }
+
+            animate();
+        }
+
+        function processWheelReward(reward) {
+            if (reward.multiplier) {
+                gameState.bonusFeatures.push(`${reward.multiplier}x Multiplier`);
+                gameState.reelValues.forEach((_, i) => {
+                    gameState.multipliers[i] *= reward.multiplier;
+                });
+                triggerVolcanoEruption();
+            }
+            if (reward.respins) {
+                gameState.respins += reward.respins;
+                updateRespinCounter();
+            }
+            if (reward.feature === 'GROW') {
+                applyFeature(symbols.GROW);
+            }
+            if (reward.value) {
+                gameState.currentWin += reward.value;
+            }
+            updateBonusFeatures();
+            playSound('wheel');
+        }
+
+        function updateBonusFeatures() {
+            const display = document.getElementById('bonusFeatures');
+            display.innerHTML = '';
+            if (gameState.bonusFeatures.length > 0) {
+                display.classList.add('active');
+                gameState.bonusFeatures.forEach(feature => {
+                    const badge = document.createElement('div');
+                    badge.className = 'feature-badge';
+                    badge.textContent = feature;
+                    display.appendChild(badge);
+                });
+            }
+        }
+
+        // ============================================================================
+        // WIN CALCULATION & POPUPS
+        // ============================================================================
+        function calculateBonusWin() {
+            let total = 0;
+            gameState.heldReels.forEach(i => {
+                const symbol = gameState.reelValues[i];
+                if (symbol && symbol.value > 0) {
+                    total += symbol.value * gameState.multipliers[i];
+                }
+            });
+
+            // Apply hard cap
+            total = Math.min(total, gameConfig.maxSingleWin);
+            return total;
+        }
+
+        function showWinPopup() {
+            const popup = document.getElementById('winPopup');
+            const overlay = document.getElementById('popupOverlay');
+            const amount = document.getElementById('winAmount');
+
+            amount.textContent = gameState.currentWin.toFixed(2) + ' SC';
+            popup.classList.add('active');
+            overlay.classList.add('active');
+            playSound('win');
+        }
+
+        function hideWinPopup() {
+            document.getElementById('winPopup').classList.remove('active');
+            document.getElementById('popupOverlay').classList.remove('active');
+        }
+
+        async function claimWin() {
+            if (gameState.currentWin > 0) {
+                try {
+                    await walletAPI.add(gameState.currentWin);
+                    gameState.balance += gameState.currentWin;
+                    await walletAPI.logTransaction('win', gameState.currentWin);
+                    updateBalanceDisplay();
+                    gameState.currentWin = 0;
+                    hideWinPopup();
+                } catch (err) {
+                    console.error('Claim error:', err);
+                    showError('Failed to claim win. Please try again.');
+                }
+            } else {
+                hideWinPopup();
+            }
+        }
+
+        function showSharePanel() {
+            const playerId = walletAPI.getPlayerId();
+            const referralLink = `https://referral.playcoincrazy.com?ref=${playerId}`;
+            const shareText = `I just won ${gameState.currentWin.toFixed(2)} SC playing CoinKrazy-3CoinsVolcanoes on PlayCoinKrazy.com! 🔥🌋\nJoin me and win big! ${referralLink}`;
+            
+            document.getElementById('shareText').textContent = shareText;
+            document.getElementById('sharePanel').classList.add('active');
+        }
+
+        function closeSharePanel() {
+            document.getElementById('sharePanel').classList.remove('active');
+            claimWin();
+        }
+
+        function shareFacebook() {
+            const text = document.getElementById('shareText').textContent;
+            const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent('https://playcoincrazy.com')}&quote=${encodeURIComponent(text)}`;
+            window.open(fbUrl, 'facebook-share', 'width=600,height=400');
+            setTimeout(closeSharePanel, 500);
+        }
+
+        function shareX() {
+            const text = document.getElementById('shareText').textContent;
+            const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+            window.open(xUrl, 'x-share', 'width=600,height=400');
+            setTimeout(closeSharePanel, 500);
+        }
+
+        function copyShareText() {
+            const text = document.getElementById('shareText').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Share text copied to clipboard!');
+                setTimeout(closeSharePanel, 500);
+            });
+        }
+
+        // ============================================================================
+        // ERROR HANDLING
+        // ============================================================================
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorPopup').classList.add('active');
+            document.getElementById('popupOverlay').classList.add('active');
+            playSound('error');
+        }
+
+        function closeErrorPopup() {
+            document.getElementById('errorPopup').classList.remove('active');
+            document.getElementById('popupOverlay').classList.remove('active');
+        }
+
+        // ============================================================================
+        // BALANCE & DISPLAY UPDATES
+        // ============================================================================
+        async function loadBalance() {
+            try {
+                gameState.balance = await walletAPI.getBalance() || 0;
+                updateBalanceDisplay();
+            } catch (err) {
+                console.error('Failed to load balance:', err);
+                showError('Failed to connect to wallet. Please refresh and try again.');
+            }
+        }
+
+        function updateBalanceDisplay() {
+            document.getElementById('balanceDisplay').textContent = gameState.balance.toFixed(2) + ' SC';
+        }
+
+        function updateBetDisplay() {
+            document.getElementById('betDisplay').textContent = gameState.bet.toFixed(2) + ' SC';
+        }
+
+        // ============================================================================
+        // SOUND EFFECTS
+        // ============================================================================
+        const soundCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (!gameState.soundEnabled) return;
+
+            const audioCtx = soundCtx;
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            switch (type) {
+                case 'spin':
+                    oscillator.frequency.value = 400;
+                    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                    oscillator.start(audioCtx.currentTime);
+                    oscillator.stop(audioCtx.currentTime + 0.5);
+                    break;
+                case 'win':
+                    for (let i = 0; i < 3; i++) {
+                        const freq = 800 + i * 200;
+                        const osc = audioCtx.createOscillator();
+                        osc.frequency.value = freq;
+                        osc.connect(gainNode);
+                        osc.start(audioCtx.currentTime + i * 0.1);
+                        osc.stop(audioCtx.currentTime + i * 0.1 + 0.15);
+                    }
+                    break;
+                case 'collect':
+                    oscillator.frequency.value = 600;
+                    gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                    oscillator.start(audioCtx.currentTime);
+                    oscillator.stop(audioCtx.currentTime + 0.2);
+                    break;
+                case 'erupt':
+                case 'bonus':
+                    oscillator.frequency.setValueAtTime(200, audioCtx.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.3);
+                    gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                    oscillator.start(audioCtx.currentTime);
+                    oscillator.stop(audioCtx.currentTime + 0.5);
+                    break;
+                case 'wheel':
+                    oscillator.frequency.value = 1000;
+                    gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                    oscillator.start(audioCtx.currentTime);
+                    oscillator.stop(audioCtx.currentTime + 0.3);
+                    break;
+                case 'error':
+                    oscillator.frequency.setValueAtTime(100, audioCtx.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.2);
+                    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                    oscillator.start(audioCtx.currentTime);
+                    oscillator.stop(audioCtx.currentTime + 0.3);
+                    break;
+            }
+        }
+
+        function toggleSound() {
+            gameState.soundEnabled = !gameState.soundEnabled;
+            const toggle = document.getElementById('soundToggle');
+            toggle.textContent = gameState.soundEnabled ? '🔊' : '🔇';
+            toggle.style.background = gameState.soundEnabled ? 'rgba(255, 215, 0, 0.2)' : 'rgba(255, 69, 0, 0.2)';
+        }
+
+        // ============================================================================
+        // INITIALIZATION
+        // ============================================================================
+        window.addEventListener('load', initializeUI);
+    </script>
+</body>
+</html>
