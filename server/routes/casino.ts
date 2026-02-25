@@ -5,9 +5,13 @@ import { emitWalletUpdate } from '../socket';
 
 export const handlePlayCasinoGame: RequestHandler = async (req, res) => {
   try {
-    const { game_id, bet_amount: raw_bet_amount, gameData } = req.body;
+    // Accept both camelCase and snake_case field names
+    const gameId = req.body.game_id || req.body.gameId;
+    const rawBetAmount = req.body.bet_amount || req.body.betAmount;
+    const game_id = gameId;
+    const bet_amount = parseFloat(rawBetAmount);
+    const { gameData } = req.body;
     const playerId = (req as any).user?.playerId;
-    const bet_amount = parseFloat(raw_bet_amount);
 
     if (!playerId) {
       return res.status(401).json({ error: 'Not authenticated' });
@@ -143,11 +147,17 @@ export const handlePlayCasinoGame: RequestHandler = async (req, res) => {
 
     return res.json({
       success: true,
+      result: {
+        roll: result_data.roll, // For dice game specifically
+        payout: winnings, // Payout amount
+        win: wins
+      },
       data: {
         game_id,
         bet_amount,
         winnings,
         result: wins ? 'win' : 'loss',
+        result_data,
         new_balance: newBalance,
         wallet: {
           goldCoins: 0, // Keep this from context
@@ -281,36 +291,46 @@ export const handleGetSpinHistory: RequestHandler = async (req, res) => {
   const playerId = (req as any).user?.playerId;
   const limit = parseInt(req.query.limit as string) || 20;
   const offset = parseInt(req.query.offset as string) || 0;
+  // Support both gameId and game_id query parameters
+  const gameIdFilter = req.query.gameId || req.query.game_id;
 
   if (!playerId) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
 
   try {
-    // Get spin history
-    const spinsResult = await query(
-      `SELECT id, game_id, game_name, provider, bet_amount, winnings, balance_before, balance_after, result, result_data, created_at
+    let sqlQuery = `SELECT id, game_id, game_name, provider, bet_amount, winnings, balance_before, balance_after, result, result_data, created_at
        FROM casino_game_spins
-       WHERE player_id = $1
-       ORDER BY created_at DESC
-       LIMIT $2 OFFSET $3`,
-      [playerId, limit, offset]
-    );
+       WHERE player_id = $1`;
+    let countQuery = 'SELECT COUNT(*) as total FROM casino_game_spins WHERE player_id = $1';
+    let params: any[] = [playerId];
+    let countParams: any[] = [playerId];
+
+    // Add game_id filter if provided
+    if (gameIdFilter) {
+      sqlQuery += ` AND game_id = $${params.length + 1}`;
+      countQuery += ` AND game_id = $${countParams.length + 1}`;
+      params.push(gameIdFilter);
+      countParams.push(gameIdFilter);
+    }
+
+    sqlQuery += ` ORDER BY created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    params.push(limit, offset);
+
+    // Get spin history
+    const spinsResult = await query(sqlQuery, params);
 
     // Get total count
-    const countResult = await query(
-      'SELECT COUNT(*) as total FROM casino_game_spins WHERE player_id = $1',
-      [playerId]
-    );
+    const countResult = await query(countQuery, countParams);
 
+    // Return both formats: array directly and wrapped in data object for compatibility
     return res.json({
       success: true,
-      data: {
-        spins: spinsResult.rows,
-        total: parseInt(countResult.rows[0].total),
-        limit,
-        offset
-      }
+      data: spinsResult.rows, // Return as array directly for compatibility with existing clients
+      spins: spinsResult.rows, // Also include as spins property for consistency
+      total: parseInt(countResult.rows[0].total),
+      limit,
+      offset
     });
   } catch (err) {
     console.error('[Casino] Get spin history error:', err);

@@ -87,10 +87,13 @@ const Dice = () => {
     try {
       const response = await apiCall<any>('/casino/spins?gameId=krazy-dice');
       if (response && response.data) {
-        setRecentGames(response.data.slice(0, 10));
+        // Handle both array and object formats for backward compatibility
+        const games = Array.isArray(response.data) ? response.data : (response.data.spins || response.spins || []);
+        setRecentGames(games.slice(0, 10));
       }
     } catch (error) {
       console.error('Failed to fetch recent games:', error);
+      // Don't show error to user, just silently fail for history
     }
   };
 
@@ -325,27 +328,30 @@ const Dice = () => {
                    </tr>
                  </thead>
                  <tbody className="divide-y">
-                   {recentGames.length > 0 ? recentGames.map((game, i) => (
-                     <tr key={i} className="hover:bg-slate-50 transition-colors">
-                       <td className="p-3">
-                         <span className={cn(
-                           "font-mono font-black",
-                           game.winnings > 0 ? "text-green-500" : "text-red-500"
-                         )}>
-                           {parseFloat(game.result_data?.roll || 0).toFixed(2)}
-                         </span>
-                       </td>
-                       <td className="p-3 text-xs font-bold text-slate-500">
-                         {game.result_data?.isRollUnder ? '<' : '>'} {game.result_data?.targetNumber}
-                       </td>
-                       <td className="p-3 text-xs font-bold">
-                         {game.bet_amount} {game.currency}
-                       </td>
-                       <td className="p-3 text-xs font-black text-primary">
-                         {game.winnings > 0 ? `+${game.winnings}` : '-'}
-                       </td>
-                     </tr>
-                   )) : (
+                   {recentGames.length > 0 ? recentGames.map((game, i) => {
+                     const resultData = typeof game.result_data === 'string' ? JSON.parse(game.result_data) : game.result_data || {};
+                     return (
+                       <tr key={i} className="hover:bg-slate-50 transition-colors">
+                         <td className="p-3">
+                           <span className={cn(
+                             "font-mono font-black",
+                             game.winnings > 0 ? "text-green-500" : "text-red-500"
+                           )}>
+                             {parseFloat(resultData.roll || 0).toFixed(2)}
+                           </span>
+                         </td>
+                         <td className="p-3 text-xs font-bold text-slate-500">
+                           {resultData.isRollUnder ? '<' : '>'} {resultData.targetNumber}
+                         </td>
+                         <td className="p-3 text-xs font-bold">
+                           {game.bet_amount} {currency}
+                         </td>
+                         <td className="p-3 text-xs font-black text-primary">
+                           {game.winnings > 0 ? `+${game.winnings}` : '-'}
+                         </td>
+                       </tr>
+                     );
+                   }) : (
                      <tr>
                        <td colSpan={4} className="p-8 text-center text-slate-400 font-bold italic">No recent games found</td>
                      </tr>
