@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoinKrazy-4EgyptPots | PlayCoinKrazy.com</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a0f2e 0%, #2d1b3d 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 1024px;
+            height: 100vh;
+            max-height: 768px;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            border: 4px solid #d4af37;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 0 60px rgba(212, 175, 55, 0.4), inset 0 0 40px rgba(212, 175, 55, 0.1);
+            overflow: hidden;
+        }
+
+        /* Header with Branding */
+        .game-header {
+            background: linear-gradient(to right, rgba(0,0,0,0.6), rgba(0,0,0,0.3));
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #d4af37;
+            font-size: 12px;
+        }
+
+        .logo {
+            font-size: 14px;
+            font-weight: bold;
+            text-shadow: 0 0 10px #d4af37;
+            color: #d4af37;
+            letter-spacing: 1px;
+        }
+
+        .provider-info {
+            font-size: 11px;
+            color: #a89047;
+        }
+
+        .balance-display {
+            font-size: 16px;
+            font-weight: bold;
+            color: #d4af37;
+            text-shadow: 0 0 5px #d4af37;
+        }
+
+        /* Main Game Area */
+        .game-main {
+            flex: 1;
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            position: relative;
+        }
+
+        /* Pot Meters Section */
+        .pots-section {
+            width: 80px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            justify-content: flex-start;
+        }
+
+        .pot-meter {
+            width: 100%;
+            height: 60px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #d4af37;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .pot-meter.active {
+            box-shadow: 0 0 20px #d4af37, inset 0 0 20px rgba(212, 175, 55, 0.2);
+        }
+
+        .pot-fill {
+            width: 100%;
+            height: 0%;
+            background: linear-gradient(to top, #d4af37, #f0e68c);
+            transition: height 0.3s ease;
+            position: relative;
+            box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .pot-fill::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.5);
+            animation: shimmer 1s infinite;
+        }
+
+        .pot-label {
+            position: absolute;
+            bottom: 2px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 9px;
+            font-weight: bold;
+            color: #d4af37;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* Canvas Area */
+        .canvas-wrapper {
+            flex: 1;
+            background: radial-gradient(ellipse at center, rgba(100,70,0,0.3) 0%, rgba(0,0,0,0.8) 100%);
+            border: 2px solid #d4af37;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(212, 175, 55, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Controls Section */
+        .controls-section {
+            background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0.5));
+            padding: 15px 20px;
+            border-top: 2px solid #d4af37;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        .bet-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .bet-chip {
+            padding: 8px 12px;
+            background: linear-gradient(135deg, #d4af37 0%, #f0e68c 100%);
+            color: #000;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 11px;
+            transition: all 0.2s;
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+        }
+
+        .bet-chip:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
+        }
+
+        .bet-chip.active {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px #d4af37, 0 4px 15px rgba(212, 175, 55, 0.5);
+        }
+
+        .bet-input-group {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .bet-input {
+            width: 60px;
+            padding: 6px 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #d4af37;
+            border-radius: 4px;
+            color: #d4af37;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .spin-button {
+            padding: 12px 40px;
+            background: linear-gradient(135deg, #d4af37 0%, #f0e68c 100%);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(212, 175, 55, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-left: auto;
+        }
+
+        .spin-button:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 30px rgba(212, 175, 55, 0.6);
+        }
+
+        .spin-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Win Popup */
+        .win-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .win-modal.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .win-modal-content {
+            background: linear-gradient(135deg, #d4af37 0%, #f0e68c 50%, #d4af37 100%);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            color: #000;
+            max-width: 500px;
+            box-shadow: 0 0 60px rgba(212, 175, 55, 0.8), inset 0 0 30px rgba(255, 255, 255, 0.3);
+            animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 3px solid #fff;
+        }
+
+        @keyframes popIn {
+            from {
+                transform: scale(0.3);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .win-amount {
+            font-size: 48px;
+            font-weight: bold;
+            color: #d4af37;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            margin: 20px 0;
+        }
+
+        .win-message {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            color: #000;
+        }
+
+        .win-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .win-button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-transform: uppercase;
+        }
+
+        .claim-btn {
+            background: linear-gradient(135deg, #006f54 0%, #00a377 100%);
+            color: #fff;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .claim-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 163, 119, 0.5);
+        }
+
+        .share-btn {
+            background: linear-gradient(135deg, #1877f2 0%, #0a66c2 100%);
+            color: #fff;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .share-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(24, 119, 242, 0.5);
+        }
+
+        /* Info Section */
+        .info-section {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 10px;
+            color: #a89047;
+            text-align: right;
+            line-height: 1.4;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        @keyframes glow {
+            0%, 100% { text-shadow: 0 0 10px #d4af37; }
+            50% { text-shadow: 0 0 20px #d4af37; }
+        }
+
+        .spinning {
+            animation: glow 0.5s infinite;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .game-container {
+                max-width: 100%;
+                max-height: 100vh;
+                border-radius: 0;
+            }
+            .game-main {
+                flex-direction: column;
+                padding: 10px;
+                gap: 10px;
+            }
+            .pots-section {
+                width: 100%;
+                flex-direction: row;
+            }
+            .pot-meter {
+                height: 40px;
+                flex: 1;
+            }
+            .controls-section {
+                flex-direction: column;
+            }
+            .spin-button {
+                margin-left: 0;
+                width: 100%;
+            }
+            .bet-controls {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <!-- Header -->
+        <div class="game-header">
+            <div class="logo">🏛️ PlayCoinKrazy.com</div>
+            <div style="flex: 1; text-align: center; font-size: 20px; font-weight: bold; text-shadow: 0 0 20px #d4af37; color: #d4af37;">
+                CoinKrazy-4EgyptPots
+            </div>
+            <div class="balance-display">
+                Balance: <span id="balance">0.00</span> SC
+            </div>
+        </div>
+
+        <!-- Main Game Area -->
+        <div class="game-main">
+            <!-- Pots Section (left) -->
+            <div class="pots-section">
+                <div class="pot-meter" id="pot0">
+                    <div class="pot-fill" id="potFill0" style="height: 0%;"></div>
+                    <div class="pot-label">🌟</div>
+                </div>
+                <div class="pot-meter" id="pot1">
+                    <div class="pot-fill" id="potFill1" style="height: 0%;"></div>
+                    <div class="pot-label">✨</div>
+                </div>
+                <div class="pot-meter" id="pot2">
+                    <div class="pot-fill" id="potFill2" style="height: 0%;"></div>
+                    <div class="pot-label">💫</div>
+                </div>
+                <div class="pot-meter" id="pot3">
+                    <div class="pot-fill" id="potFill3" style="height: 0%;"></div>
+                    <div class="pot-label">👑</div>
+                </div>
+            </div>
+
+            <!-- Canvas Area (center) -->
+            <div class="canvas-wrapper">
+                <canvas id="gameCanvas" width="600" height="450"></canvas>
+            </div>
+
+            <!-- Info -->
+            <div class="info-section">
+                <div style="color: #d4af37; font-weight: bold;">CoinKrazy Studios</div>
+                <div>5×3 Grid • 20 Paylines</div>
+                <div>RTP: 96.2% • Volatility: High</div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-section">
+            <div class="bet-controls">
+                <span style="font-size: 12px; color: #a89047;">BET:</span>
+                <button class="bet-chip" data-bet="0.01">0.01</button>
+                <button class="bet-chip" data-bet="0.10">0.10</button>
+                <button class="bet-chip" data-bet="0.25">0.25</button>
+                <button class="bet-chip" data-bet="0.50">0.50</button>
+                <button class="bet-chip" data-bet="1.00" class="active">1.00</button>
+                <button class="bet-chip" data-bet="2.00">2.00</button>
+                <button class="bet-chip" data-bet="5.00">5.00</button>
+                <div class="bet-input-group">
+                    <input type="number" class="bet-input" id="customBet" placeholder="0.00" step="0.01" min="0.01" max="5.00">
+                </div>
+            </div>
+            <button class="spin-button" id="spinButton">SPIN</button>
+        </div>
+    </div>
+
+    <!-- Win Popup Modal -->
+    <div class="win-modal" id="winModal">
+        <div class="win-modal-content">
+            <div style="font-size: 24px; margin-bottom: 10px;">🎉 CONGRATULATIONS! 🎉</div>
+            <div class="win-message">YOU WON!</div>
+            <div class="win-amount" id="winAmount">0.00 SC</div>
+            <div style="font-size: 14px; margin-bottom: 20px; color: #000;">Join thousands winning on PlayCoinKrazy.com</div>
+            <div class="win-buttons">
+                <button class="win-button claim-btn" id="claimBtn">✓ CLAIM & CONTINUE</button>
+                <button class="win-button share-btn" id="shareBtn">📱 SHARE ON SOCIAL</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================
+        // GAME CONSTANTS
+        // ========================
+        const SYMBOLS = {
+            WILD: 'wild',
+            QUEEN: 'queen',
+            HORUS: 'horus',
+            SCARAB: 'scarab',
+            ANKH: 'ankh',
+            A: 'a',
+            K: 'k',
+            Q: 'q',
+            J: 'j',
+            COIN: 'coin',
+            PROGRESS: ['progress1', 'progress2', 'progress3', 'progress4'],
+            MYSTERY: 'mystery'
+        };
+
+        const SYMBOL_WEIGHTS = {
+            'wild': 5,
+            'queen': 3,
+            'horus': 3,
+            'scarab': 3,
+            'ankh': 3,
+            'a': 8,
+            'k': 8,
+            'q': 8,
+            'j': 8,
+            'coin': 6,
+            'progress1': 2,
+            'progress2': 2,
+            'progress3': 2,
+            'progress4': 2,
+            'mystery': 2
+        };
+
+        const PAYTABLE = {
+            'wild': { 3: 0.5, 4: 2.5, 5: 10 },
+            'queen': { 3: 2.5, 4: 5, 5: 7.5 },
+            'horus': { 3: 2.5, 4: 5, 5: 5 },
+            'scarab': { 3: 2.5, 4: 5, 5: 5 },
+            'ankh': { 3: 2.5, 4: 5, 5: 5 },
+            'a': { 3: 1.5, 4: 2, 5: 2.5 },
+            'k': { 3: 1.5, 4: 2, 5: 2.5 },
+            'q': { 3: 1.5, 4: 2, 5: 2.5 },
+            'j': { 3: 1.5, 4: 2, 5: 2.5 }
+        };
+
+        const COIN_VALUES = [0.5, 1, 2, 5, 10, 25, 30];
+        const JACKPOT_TIERS = {
+            mini: 50,
+            minor: 100,
+            maxi: 500,
+            major: 1000,
+            royal: 5000
+        };
+
+        const PAYLINES = [
+            [0, 0, 0, 0, 0],
+            [1, 1, 1, 1, 1],
+            [2, 2, 2, 2, 2],
+            [0, 1, 2, 1, 0],
+            [2, 1, 0, 1, 2],
+            [0, 0, 1, 2, 2],
+            [2, 2, 1, 0, 0],
+            [0, 1, 1, 1, 0],
+            [2, 1, 1, 1, 2],
+            [1, 0, 1, 0, 1],
+            [1, 2, 1, 2, 1],
+            [0, 1, 0, 1, 0],
+            [2, 1, 2, 1, 2],
+            [0, 2, 2, 2, 0],
+            [2, 0, 0, 0, 2],
+            [1, 0, 0, 0, 1],
+            [1, 2, 2, 2, 1],
+            [0, 1, 2, 2, 1],
+            [2, 1, 0, 0, 1],
+            [1, 2, 1, 0, 2]
+        ];
+
+        const REEL_WIDTH = 120;
+        const SYMBOL_HEIGHT = 150;
+        const ROWS = 3;
+        const COLS = 5;
+        const MAX_WIN_PER_SPIN = 10; // Hard cap
+
+        // ========================
+        // GAME STATE
+        // ========================
+        let gameState = {
+            reels: [[], [], [], [], []],
+            balance: 0,
+            bet: 1.00,
+            isSpinning: false,
+            potMeters: [0, 0, 0, 0], // 0-100%
+            potFeatures: {
+                boost: false,
+                collect: false,
+                multi: false,
+                jackpot: false
+            },
+            inBonusMode: false,
+            bonusRespin: 3,
+            stickySymbols: {},
+            totalWin: 0,
+            referralLink: ''
+        };
+
+        // ========================
+        // INITIALIZATION
+        // ========================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let animationFrameId = null;
+        let reelAnimations = [
+            { position: 0, velocity: 0, isSpinning: false },
+            { position: 0, velocity: 0, isSpinning: false },
+            { position: 0, velocity: 0, isSpinning: false },
+            { position: 0, velocity: 0, isSpinning: false },
+            { position: 0, velocity: 0, isSpinning: false }
+        ];
+
+        function initGame() {
+            // Load player's SC balance
+            const balanceElement = document.getElementById('balance');
+            if (typeof getPlayerSCBalance === 'function') {
+                gameState.balance = getPlayerSCBalance();
+            } else {
+                // Fallback for testing
+                gameState.balance = 10.00;
+            }
+            balanceElement.textContent = gameState.balance.toFixed(2);
+
+            // Initialize reels with random symbols
+            for (let i = 0; i < COLS; i++) {
+                gameState.reels[i] = [];
+                for (let j = 0; j < ROWS; j++) {
+                    gameState.reels[i].push(getRandomSymbol());
+                }
+            }
+
+            // Get referral link if available
+            if (typeof getPlayerReferralLink === 'function') {
+                gameState.referralLink = getPlayerReferralLink();
+            }
+
+            setupEventListeners();
+            gameLoop();
+        }
+
+        function setupEventListeners() {
+            // Bet buttons
+            document.querySelectorAll('.bet-chip').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const bet = parseFloat(this.dataset.bet);
+                    gameState.bet = bet;
+                    document.querySelectorAll('.bet-chip').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+
+            // Custom bet input
+            document.getElementById('customBet').addEventListener('change', function() {
+                let bet = parseFloat(this.value);
+                if (isNaN(bet) || bet < 0.01) bet = 0.01;
+                if (bet > 5.00) bet = 5.00;
+                gameState.bet = bet;
+                document.querySelectorAll('.bet-chip').forEach(b => b.classList.remove('active'));
+            });
+
+            // Spin button
+            document.getElementById('spinButton').addEventListener('click', startSpin);
+
+            // Win modal buttons
+            document.getElementById('claimBtn').addEventListener('click', closeWinModal);
+            document.getElementById('shareBtn').addEventListener('click', shareWin);
+        }
+
+        function getRandomSymbol(includeSpecial = true) {
+            let symbols = Object.keys(SYMBOL_WEIGHTS);
+            let weights = symbols.map(s => SYMBOL_WEIGHTS[s]);
+
+            const totalWeight = weights.reduce((a, b) => a + b, 0);
+            let random = Math.random() * totalWeight;
+            for (let i = 0; i < symbols.length; i++) {
+                random -= weights[i];
+                if (random <= 0) return symbols[i];
+            }
+            return 'a';
+        }
+
+        function generateWinningReel(targetSymbol) {
+            // Generate a reel with guaranteed winning symbol on first row
+            const reel = [];
+            reel.push(targetSymbol);
+            for (let i = 1; i < ROWS; i++) {
+                reel.push(getRandomSymbol());
+            }
+            return reel;
+        }
+
+        // ========================
+        // SPIN LOGIC
+        // ========================
+        function startSpin() {
+            if (gameState.isSpinning) return;
+            if (gameState.balance < gameState.bet) {
+                alert('Insufficient balance!');
+                return;
+            }
+
+            gameState.isSpinning = true;
+            gameState.totalWin = 0;
+
+            // Deduct bet
+            gameState.balance -= gameState.bet;
+            updateBalance();
+            recordTransaction('bet', -gameState.bet);
+
+            // Start reel animations
+            for (let i = 0; i < COLS; i++) {
+                reelAnimations[i].velocity = 20 + Math.random() * 10;
+                reelAnimations[i].isSpinning = true;
+            }
+
+            // Stop reels at staggered intervals
+            setTimeout(() => stopReel(0), 400);
+            setTimeout(() => stopReel(1), 500);
+            setTimeout(() => stopReel(2), 600);
+            setTimeout(() => stopReel(3), 700);
+            setTimeout(() => stopReel(4), 800);
+            setTimeout(() => endSpin(), 1300);
+        }
+
+        function stopReel(reelIndex) {
+            reelAnimations[reelIndex].velocity = 0;
+            reelAnimations[reelIndex].isSpinning = false;
+
+            // Generate new symbols for this reel
+            gameState.reels[reelIndex] = [];
+            for (let j = 0; j < ROWS; j++) {
+                gameState.reels[reelIndex].push(getRandomSymbol());
+            }
+        }
+
+        function endSpin() {
+            gameState.isSpinning = false;
+
+            // Calculate wins
+            const wins = calculateWins();
+            gameState.totalWin = Math.min(wins, MAX_WIN_PER_SPIN);
+
+            // Update pot meters
+            updatePotMeters();
+
+            // Apply win
+            if (gameState.totalWin > 0) {
+                gameState.balance += gameState.totalWin;
+                updateBalance();
+                recordTransaction('win', gameState.totalWin);
+                showWinModal(gameState.totalWin);
+            }
+
+            // Check for bonus features
+            checkBonusFeatures();
+        }
+
+        function calculateWins() {
+            let totalWin = 0;
+            const winningLines = [];
+            const coinValues = {};
+
+            // First, scan for coin values and bonus symbols
+            for (let col = 0; col < COLS; col++) {
+                for (let row = 0; row < ROWS; row++) {
+                    const symbol = gameState.reels[col][row];
+                    if (symbol === SYMBOLS.COIN) {
+                        // Assign random value to coin
+                        coinValues[`${col}-${row}`] = COIN_VALUES[Math.floor(Math.random() * COIN_VALUES.length)];
+                    }
+                }
+            }
+
+            // Check for standard payline wins
+            for (let lineIndex = 0; lineIndex < PAYLINES.length; lineIndex++) {
+                const payline = PAYLINES[lineIndex];
+                const lineSymbols = payline.map((row, col) => gameState.reels[col][row]);
+
+                // Check for matches (min 3 consecutive from left)
+                for (let matchLength = 5; matchLength >= 3; matchLength--) {
+                    const matchSymbols = lineSymbols.slice(0, matchLength);
+                    if (checkMatch(matchSymbols)) {
+                        const symbol = matchSymbols[0];
+                        const payout = PAYTABLE[symbol]?.[matchLength] || 0;
+                        if (payout > 0) {
+                            totalWin += payout * gameState.bet;
+                            winningLines.push({ line: lineIndex, symbol, length: matchLength, payout });
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Coin values contribute to win
+            for (const key in coinValues) {
+                totalWin += coinValues[key] * gameState.bet;
+            }
+
+            return totalWin;
+        }
+
+        function checkMatch(symbols) {
+            if (!symbols || symbols.length === 0) return false;
+            const first = symbols[0];
+
+            // Progress and mystery symbols don't trigger payline wins directly
+            if (SYMBOLS.PROGRESS.includes(first) || first === SYMBOLS.MYSTERY) {
+                return false;
+            }
+
+            return symbols.slice(0, 3).every((s, i) => {
+                return s === first || first === SYMBOLS.WILD || s === SYMBOLS.WILD;
+            });
+        }
+
+        function updatePotMeters() {
+            // Scan for progress symbols
+            for (let col = 0; col < COLS; col++) {
+                for (let row = 0; row < ROWS; row++) {
+                    const symbol = gameState.reels[col][row];
+                    for (let potIndex = 0; potIndex < 4; potIndex++) {
+                        if (symbol === SYMBOLS.PROGRESS[potIndex]) {
+                            gameState.potMeters[potIndex] = Math.min(100, gameState.potMeters[potIndex] + 25);
+                        }
+                    }
+                }
+            }
+
+            // Update meter display
+            for (let i = 0; i < 4; i++) {
+                const fill = document.getElementById(`potFill${i}`);
+                const meter = document.getElementById(`pot${i}`);
+                fill.style.height = gameState.potMeters[i] + '%';
+                if (gameState.potMeters[i] >= 100) {
+                    meter.classList.add('active');
+                    gameState.potFeatures[['boost', 'collect', 'multi', 'jackpot'][i]] = true;
+                }
+            }
+        }
+
+        function checkBonusFeatures() {
+            let coinCount = 0;
+            for (let col = 0; col < COLS; col++) {
+                for (let row = 0; row < ROWS; row++) {
+                    if (gameState.reels[col][row] === SYMBOLS.COIN) {
+                        coinCount++;
+                    }
+                }
+            }
+
+            if (coinCount >= 6 || Object.values(gameState.potFeatures).some(v => v)) {
+                triggerBonusMode();
+            }
+        }
+
+        function triggerBonusMode() {
+            gameState.inBonusMode = true;
+            gameState.bonusRespin = 3;
+            console.log('Bonus Mode Triggered!');
+            // Bonus mode logic would go here
+        }
+
+        // ========================
+        // UI UPDATES
+        // ========================
+        function updateBalance() {
+            document.getElementById('balance').textContent = gameState.balance.toFixed(2);
+        }
+
+        function recordTransaction(type, amount) {
+            if (typeof recordGameTransaction === 'function') {
+                recordGameTransaction({
+                    game: 'CoinKrazy-4EgyptPots',
+                    type: type,
+                    amount: amount,
+                    color: type === 'bet' ? 'red' : 'green',
+                    timestamp: new Date().toISOString()
+                });
+            }
+        }
+
+        function showWinModal(amount) {
+            document.getElementById('winAmount').textContent = amount.toFixed(2) + ' SC';
+            document.getElementById('winModal').classList.add('show');
+        }
+
+        function closeWinModal() {
+            document.getElementById('winModal').classList.remove('show');
+        }
+
+        function shareWin() {
+            const amount = gameState.totalWin.toFixed(2);
+            const text = encodeURIComponent(`I just won ${amount} SC playing CoinKrazy-4EgyptPots on PlayCoinKrazy.com! 🔥 Come join the fun → ${gameState.referralLink}`);
+            const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(gameState.referralLink)}&quote=${text}`;
+            window.open(url, '_blank', 'width=600,height=400');
+            setTimeout(closeWinModal, 500);
+        }
+
+        // ========================
+        // RENDERING
+        // ========================
+        function gameLoop() {
+            // Clear canvas
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Update reel positions
+            for (let i = 0; i < COLS; i++) {
+                if (reelAnimations[i].isSpinning) {
+                    reelAnimations[i].velocity *= 0.95; // Deceleration
+                    if (reelAnimations[i].velocity < 0.5) {
+                        reelAnimations[i].velocity = 0;
+                        reelAnimations[i].isSpinning = false;
+                    }
+                    reelAnimations[i].position += reelAnimations[i].velocity;
+                }
+            }
+
+            // Draw reels
+            for (let col = 0; col < COLS; col++) {
+                drawReel(col);
+            }
+
+            // Draw grid lines
+            ctx.strokeStyle = 'rgba(212, 175, 55, 0.2)';
+            ctx.lineWidth = 1;
+            for (let i = 1; i < COLS; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * REEL_WIDTH, 0);
+                ctx.lineTo(i * REEL_WIDTH, SYMBOL_HEIGHT * ROWS);
+                ctx.stroke();
+            }
+
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        function drawReel(colIndex) {
+            const xOffset = colIndex * REEL_WIDTH;
+            const reel = gameState.reels[colIndex];
+            const scrollOffset = reelAnimations[colIndex].position % (SYMBOL_HEIGHT * reel.length);
+
+            for (let row = 0; row < ROWS; row++) {
+                const symbolIndex = row;
+                const symbol = reel[symbolIndex];
+                const yOffset = (row * SYMBOL_HEIGHT) - scrollOffset;
+
+                drawSymbol(symbol, xOffset, yOffset, REEL_WIDTH, SYMBOL_HEIGHT);
+            }
+        }
+
+        function drawSymbol(symbol, x, y, width, height) {
+            // Draw symbol background with gradient
+            const gradient = ctx.createLinearGradient(x, y, x, y + height);
+            gradient.addColorStop(0, 'rgba(212, 175, 55, 0.1)');
+            gradient.addColorStop(1, 'rgba(212, 175, 55, 0.05)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(x, y, width, height);
+
+            // Draw border
+            ctx.strokeStyle = 'rgba(212, 175, 55, 0.4)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, width, height);
+
+            // Draw symbol with enhanced visuals
+            ctx.save();
+            ctx.translate(x + width / 2, y + height / 2);
+
+            const symbolConfig = {
+                'wild': { emoji: '👑', color: '#FFD700', size: 48, glow: true },
+                'queen': { emoji: '♛', color: '#FFD700', size: 40, glow: true },
+                'horus': { emoji: '👁️', color: '#87CEEB', size: 40, glow: true },
+                'scarab': { emoji: '🐚', color: '#DAA520', size: 40, glow: false },
+                'ankh': { emoji: '✝️', color: '#FFD700', size: 40, glow: true },
+                'a': { text: 'A', color: '#FF6B6B', size: 32, glow: false },
+                'k': { text: 'K', color: '#FF6B6B', size: 32, glow: false },
+                'q': { text: 'Q', color: '#FF6B6B', size: 32, glow: false },
+                'j': { text: 'J', color: '#FF6B6B', size: 32, glow: false },
+                'coin': { emoji: '💰', color: '#FFD700', size: 44, glow: true },
+                'progress1': { emoji: '🏛️', color: '#FFD700', size: 36, glow: false },
+                'progress2': { emoji: '🐚', color: '#FFD700', size: 36, glow: false },
+                'progress3': { emoji: '✝️', color: '#FFD700', size: 36, glow: false },
+                'progress4': { emoji: '👑', color: '#FFD700', size: 36, glow: false },
+                'mystery': { emoji: '?', color: '#9D4EDD', size: 48, glow: true }
+            };
+
+            const config = symbolConfig[symbol] || { text: '?', color: '#fff', size: 32 };
+
+            if (config.glow) {
+                ctx.shadowColor = config.color;
+                ctx.shadowBlur = 10;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+            }
+
+            ctx.font = `bold ${config.size}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = config.color;
+
+            const text = config.emoji || config.text;
+            ctx.fillText(text, 0, 0);
+
+            ctx.restore();
+        }
+
+        // ========================
+        // START GAME
+        // ========================
+        document.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>
