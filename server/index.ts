@@ -430,6 +430,26 @@ import {
   handleGetConversationHistory,
   handleGetSessions
 } from "./routes/ai";
+import {
+  createGameBuilderProject,
+  getGameBuilderProjects,
+  getGameBuilderProject,
+  updateGameBuilderProject,
+  deleteGameBuilderProject,
+  saveGameVersion,
+  getGameVersion,
+  restoreGameVersion
+} from "./routes/ai-game-builder";
+import {
+  createAdminNotification,
+  getAdminNotifications,
+  getAdminNotification,
+  updateAdminNotification,
+  approveAdminNotification,
+  denyAdminNotification,
+  getNotificationsByType,
+  bulkUpdateAdminNotifications
+} from "./routes/admin-notifications-queue";
 
 export function createServer() {
   const app = express();
@@ -967,6 +987,26 @@ export function createServer() {
   app.get("/api/ai/status", handleGetAIStatus);
   app.get("/api/ai/conversation/history", verifyPlayer, handleGetConversationHistory);
   app.get("/api/ai/conversation/sessions", verifyPlayer, handleGetSessions);
+
+  // ===== AI GAME BUILDER ROUTES =====
+  app.post("/api/admin/v2/games/builder/projects", verifyAdmin, createGameBuilderProject);
+  app.get("/api/admin/v2/games/builder/projects", verifyAdmin, getGameBuilderProjects);
+  app.get("/api/admin/v2/games/builder/projects/:projectId", verifyAdmin, getGameBuilderProject);
+  app.put("/api/admin/v2/games/builder/projects/:projectId", verifyAdmin, updateGameBuilderProject);
+  app.delete("/api/admin/v2/games/builder/projects/:projectId", verifyAdmin, deleteGameBuilderProject);
+  app.post("/api/admin/v2/games/builder/projects/:projectId/versions", verifyAdmin, saveGameVersion);
+  app.get("/api/admin/v2/games/builder/versions/:versionId", verifyAdmin, getGameVersion);
+  app.post("/api/admin/v2/games/builder/projects/:projectId/versions/:versionId/restore", verifyAdmin, restoreGameVersion);
+
+  // ===== ADMIN NOTIFICATIONS QUEUE ROUTES =====
+  app.post("/api/admin/v2/notifications", verifyAdmin, createAdminNotification);
+  app.get("/api/admin/v2/notifications", verifyAdmin, getAdminNotifications);
+  app.get("/api/admin/v2/notifications/:notificationId", verifyAdmin, getAdminNotification);
+  app.put("/api/admin/v2/notifications/:notificationId", verifyAdmin, updateAdminNotification);
+  app.post("/api/admin/v2/notifications/:notificationId/approve", verifyAdmin, approveAdminNotification);
+  app.post("/api/admin/v2/notifications/:notificationId/deny", verifyAdmin, denyAdminNotification);
+  app.get("/api/admin/v2/notifications/type/:type", verifyAdmin, getNotificationsByType);
+  app.post("/api/admin/v2/notifications/bulk-update", verifyAdmin, bulkUpdateAdminNotifications);
 
   // ===== DEBUG ROUTES =====
   app.get("/api/debug/store-packs", async (_req, res) => {
