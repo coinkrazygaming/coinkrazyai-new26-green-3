@@ -281,12 +281,12 @@ export function AdminNotifications() {
           </div>
         </div>
 
-        <Select value={priorityFilter || ''} onValueChange={(val) => setPriorityFilter(val || null)}>
+        <Select value={priorityFilter || 'all'} onValueChange={(val) => setPriorityFilter(val === 'all' ? null : val)}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Filter by priority" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Priorities</SelectItem>
+            <SelectItem value="all">All Priorities</SelectItem>
             <SelectItem value="critical">Critical</SelectItem>
             <SelectItem value="high">High</SelectItem>
             <SelectItem value="medium">Medium</SelectItem>
@@ -294,12 +294,12 @@ export function AdminNotifications() {
           </SelectContent>
         </Select>
 
-        <Select value={typeFilter || ''} onValueChange={(val) => setTypeFilter(val || null)}>
+        <Select value={typeFilter || 'all'} onValueChange={(val) => setTypeFilter(val === 'all' ? null : val)}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Filter by type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Types</SelectItem>
+            <SelectItem value="all">All Types</SelectItem>
             <SelectItem value="alert">Alert</SelectItem>
             <SelectItem value="task">Task</SelectItem>
             <SelectItem value="message">Message</SelectItem>
