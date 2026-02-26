@@ -249,7 +249,17 @@ const AdminPlayers = () => {
                 <TrendingUp className="w-4 h-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${Array.isArray(filteredPlayers) ? filteredPlayers.reduce((sum, p) => sum + (p.total_wagered || 0), 0).toFixed(2) : '0.00'}</div>
+                <div className="text-2xl font-bold">
+                  ${(() => {
+                    try {
+                      if (!Array.isArray(filteredPlayers) || filteredPlayers.length === 0) return '0.00';
+                      const total = filteredPlayers.reduce((sum, p) => sum + Number(p.total_wagered || 0), 0);
+                      return typeof total === 'number' ? total.toFixed(2) : '0.00';
+                    } catch {
+                      return '0.00';
+                    }
+                  })()}
+                </div>
               </CardContent>
             </Card>
             <Card>
@@ -257,7 +267,18 @@ const AdminPlayers = () => {
                 <CardTitle className="text-sm">Avg Value</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${Array.isArray(filteredPlayers) ? (filteredPlayers.reduce((sum, p) => sum + (p.total_won || 0), 0) / (filteredPlayers.length || 1)).toFixed(2) : '0.00'}</div>
+                <div className="text-2xl font-bold">
+                  ${(() => {
+                    try {
+                      if (!Array.isArray(filteredPlayers) || filteredPlayers.length === 0) return '0.00';
+                      const total = filteredPlayers.reduce((sum, p) => sum + Number(p.total_won || 0), 0);
+                      const avg = total / filteredPlayers.length;
+                      return typeof avg === 'number' ? avg.toFixed(2) : '0.00';
+                    } catch {
+                      return '0.00';
+                    }
+                  })()}
+                </div>
               </CardContent>
             </Card>
           </div>
