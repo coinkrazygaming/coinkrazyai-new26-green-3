@@ -353,6 +353,7 @@ ALTER TABLE referral_links ADD COLUMN IF NOT EXISTS total_referral_bonus DECIMAL
 ALTER TABLE bonuses ADD COLUMN IF NOT EXISTS wagering_multiplier DECIMAL(5, 2) DEFAULT 35.0;
 ALTER TABLE casino_settings ADD COLUMN IF NOT EXISTS updated_by INTEGER REFERENCES admin_users(id);
 ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS last_login TIMESTAMP;
+ALTER TABLE casino_game_spins ADD COLUMN IF NOT EXISTS result_data JSONB;
 
 -- 11. Missing Game-Specific Tables
 CREATE TABLE IF NOT EXISTS poker_sessions (
