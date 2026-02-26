@@ -354,6 +354,7 @@ ALTER TABLE bonuses ADD COLUMN IF NOT EXISTS wagering_multiplier DECIMAL(5, 2) D
 ALTER TABLE casino_settings ADD COLUMN IF NOT EXISTS updated_by INTEGER REFERENCES admin_users(id);
 ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS last_login TIMESTAMP;
 ALTER TABLE casino_game_spins ADD COLUMN IF NOT EXISTS result_data JSONB;
+ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS admin_id INTEGER REFERENCES admin_users(id);
 
 -- 11. Missing Game-Specific Tables
 CREATE TABLE IF NOT EXISTS poker_sessions (
