@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoinKrazy-4EgyptPots - PlayCoinKrazy.com</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 1000px;
+            background: linear-gradient(135deg, #2d3561 0%, #1a1f3a 100%);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(212, 175, 55, 0.3);
+            border: 2px solid rgba(212, 175, 55, 0.5);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(212, 175, 55, 0.3);
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: bold;
+            color: #d4af37;
+            text-shadow: 0 2px 10px rgba(212, 175, 55, 0.5);
+            letter-spacing: 2px;
+        }
+
+        .balance-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00ff00;
+            text-shadow: 0 2px 8px rgba(0, 255, 0, 0.5);
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 2px solid #00ff00;
+        }
+
+        .provider-info {
+            font-size: 12px;
+            color: #d4af37;
+            text-align: right;
+        }
+
+        .game-main {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .reels-section {
+            flex: 1;
+            background: linear-gradient(135deg, #1a1f3a 0%, #16213e 100%);
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid rgba(212, 175, 55, 0.3);
+            position: relative;
+        }
+
+        .pots-display {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .pot {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #d4af37;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            font-size: 11px;
+            color: #d4af37;
+        }
+
+        .pot-meter {
+            width: 100%;
+            height: 8px;
+            background: rgba(100, 100, 100, 0.3);
+            border-radius: 4px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+
+        .pot-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #d4af37, #ffff00);
+            width: 0%;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 8px #ffff00;
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background: radial-gradient(ellipse at center, #2a2a4a 0%, #1a1a2e 100%);
+            border-radius: 10px;
+            max-width: 100%;
+            height: auto;
+            border: 2px solid rgba(212, 175, 55, 0.5);
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 180px;
+        }
+
+        .bet-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .bet-label {
+            color: #d4af37;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .bet-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .bet-btn {
+            background: linear-gradient(135deg, #d4af37, #f0d96a);
+            color: #000;
+            border: none;
+            border-radius: 6px;
+            padding: 8px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+
+        .bet-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(212, 175, 55, 0.5);
+        }
+
+        .bet-btn.active {
+            box-shadow: 0 0 20px rgba(255, 255, 0, 0.8);
+            border: 2px solid #fff;
+        }
+
+        .bet-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .spin-button {
+            background: linear-gradient(135deg, #ff6b35, #f7a800);
+            color: white;
+            border: none;
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 8px 25px rgba(255, 107, 53, 0.4);
+            letter-spacing: 1px;
+        }
+
+        .spin-button:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(255, 107, 53, 0.6);
+        }
+
+        .spin-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .info-btn {
+            background: rgba(212, 175, 55, 0.3);
+            color: #d4af37;
+            border: 2px solid #d4af37;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .info-btn:hover {
+            background: rgba(212, 175, 55, 0.6);
+        }
+
+        .status-text {
+            color: #d4af37;
+            font-size: 12px;
+            text-align: center;
+            margin-top: 10px;
+            min-height: 20px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal.show {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #d4af37, #f0d96a);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9);
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .win-title {
+            font-size: 32px;
+            font-weight: bold;
+            color: #000;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.3);
+        }
+
+        .win-amount {
+            font-size: 48px;
+            font-weight: bold;
+            color: #ff6b35;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            margin-bottom: 20px;
+        }
+
+        .share-hint {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .claim-btn {
+            background: linear-gradient(135deg, #00aa44, #00dd55);
+            color: white;
+        }
+
+        .claim-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 170, 68, 0.4);
+        }
+
+        .share-btn {
+            background: #1877f2;
+            color: white;
+        }
+
+        .share-btn:hover {
+            background: #0a66c2;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(24, 119, 242, 0.4);
+        }
+
+        .footer {
+            text-align: center;
+            color: #d4af37;
+            font-size: 11px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(212, 175, 55, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .game-main {
+                flex-direction: column;
+            }
+
+            .controls {
+                width: 100%;
+            }
+
+            .bet-buttons {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            canvas {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <div>
+                <div class="logo">🏛️ COINKRAZY-4EGYPTPOTS 🏛️</div>
+                <div class="provider-info">CoinKrazy Studios | PlayCoinKrazy.com</div>
+            </div>
+            <div class="balance-display">Balance: <span id="balanceDisplay">0.00</span> SC</div>
+        </div>
+
+        <div class="game-main">
+            <div class="reels-section">
+                <div class="pots-display">
+                    <div class="pot">
+                        <div style="font-size: 10px; margin-bottom: 3px;">⚱️ BOOST</div>
+                        <div class="pot-meter"><div class="pot-fill" id="potFill0"></div></div>
+                    </div>
+                    <div class="pot">
+                        <div style="font-size: 10px; margin-bottom: 3px;">⚱️ COLLECT</div>
+                        <div class="pot-meter"><div class="pot-fill" id="potFill1"></div></div>
+                    </div>
+                    <div class="pot">
+                        <div style="font-size: 10px; margin-bottom: 3px;">⚱️ MULTI</div>
+                        <div class="pot-meter"><div class="pot-fill" id="potFill2"></div></div>
+                    </div>
+                    <div class="pot">
+                        <div style="font-size: 10px; margin-bottom: 3px;">💎 JACKPOT</div>
+                        <div class="pot-meter"><div class="pot-fill" id="potFill3"></div></div>
+                    </div>
+                </div>
+                <canvas id="gameCanvas" width="600" height="400"></canvas>
+                <div class="status-text" id="statusText"></div>
+            </div>
+
+            <div class="controls">
+                <div>
+                    <div class="bet-label">Bet Per Spin</div>
+                    <div class="bet-buttons">
+                        <button class="bet-btn" data-bet="0.01">0.01</button>
+                        <button class="bet-btn" data-bet="0.10">0.10</button>
+                        <button class="bet-btn" data-bet="0.25">0.25</button>
+                        <button class="bet-btn" data-bet="0.50">0.50</button>
+                        <button class="bet-btn" data-bet="1.00">1.00</button>
+                        <button class="bet-btn" data-bet="2.00">2.00</button>
+                        <button class="bet-btn" data-bet="5.00">5.00</button>
+                        <button class="bet-btn" data-bet="10.00">10.00</button>
+                    </div>
+                </div>
+
+                <button class="spin-button" id="spinBtn">SPIN</button>
+                <button class="info-btn" id="infoBtn">ℹ️ INFO</button>
+                <div class="status-text" id="statusMobile"></div>
+            </div>
+        </div>
+
+        <div class="footer">
+            PlayCoinKrazy.com | © 2025 CoinKrazy Studios | 20 Paylines | RTP: 96.3%
+        </div>
+    </div>
+
+    <!-- Win Modal -->
+    <div class="modal" id="winModal">
+        <div class="modal-content">
+            <div class="win-title">🎉 CONGRATULATIONS! 🎉</div>
+            <div class="win-amount" id="winAmount">0 SC</div>
+            <div class="share-hint">Share your win with friends!</div>
+            <div class="modal-buttons">
+                <button class="modal-btn claim-btn" id="claimBtn">Claim & Continue</button>
+                <button class="modal-btn share-btn" id="shareBtn">📱 Share on Facebook</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game Configuration
+        const GAME_CONFIG = {
+            cols: 5,
+            rows: 3,
+            paylines: 20,
+            maxWin: 10, // Hard cap on wins
+            symbols: {
+                wild: { id: 'W', pay: [0, 0.5, 2.5, 10], name: 'Wild' },
+                queen: { id: 'Q', pay: [0, 0, 7.5, 7.5], name: 'Queen' },
+                horus: { id: 'H', pay: [0, 0, 5, 5], name: 'Eye of Horus' },
+                scarab: { id: 'S', pay: [0, 0, 5, 5], name: 'Scarab' },
+                ankh: { id: 'A', pay: [0, 0, 5, 5], name: 'Ankh' },
+                k: { id: 'K', pay: [0, 0, 2.5, 2.5], name: 'K' },
+                q: { id: 'Q2', pay: [0, 0, 2.5, 2.5], name: 'Q' },
+                j: { id: 'J', pay: [0, 0, 2.5, 2.5], name: 'J' },
+                ten: { id: '10', pay: [0, 0, 2.5, 2.5], name: '10' },
+                bonus: { id: 'B', pay: [0, 0, 0, 0], name: 'Bonus Coin', isBonus: true },
+                prog0: { id: 'P0', pay: [0, 0, 0, 0], name: 'Progress 1', isProg: true },
+                prog1: { id: 'P1', pay: [0, 0, 0, 0], name: 'Progress 2', isProg: true },
+                prog2: { id: 'P2', pay: [0, 0, 0, 0], name: 'Progress 3', isProg: true },
+                prog3: { id: 'P3', pay: [0, 0, 0, 0], name: 'Progress 4', isProg: true },
+                mystery: { id: 'M', pay: [0, 0, 0, 0], name: 'Mystery', isMystery: true }
+            }
+        };
+
+        // Game State
+        let gameState = {
+            balance: 0,
+            currentBet: 1.00,
+            isSpinning: false,
+            reels: [],
+            potMeters: [0, 0, 0, 0],
+            inBonus: false,
+            respinsLeft: 0,
+            stickySymbols: [],
+            lastWin: 0
+        };
+
+        // DOM Elements
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const balanceDisplay = document.getElementById('balanceDisplay');
+        const spinBtn = document.getElementById('spinBtn');
+        const betButtons = document.querySelectorAll('.bet-btn');
+        const statusText = document.getElementById('statusText');
+        const winModal = document.getElementById('winModal');
+        const winAmount = document.getElementById('winAmount');
+        const claimBtn = document.getElementById('claimBtn');
+        const shareBtn = document.getElementById('shareBtn');
+        const potFills = [
+            document.getElementById('potFill0'),
+            document.getElementById('potFill1'),
+            document.getElementById('potFill2'),
+            document.getElementById('potFill3')
+        ];
+
+        // Initialize
+        function init() {
+            loadPlayerBalance();
+            setupEventListeners();
+            initializeReels();
+            drawGame();
+            updateStatusText('Click SPIN to start playing');
+        }
+
+        function setupEventListeners() {
+            spinBtn.addEventListener('click', handleSpin);
+            betButtons.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    betButtons.forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    gameState.currentBet = parseFloat(e.target.dataset.bet);
+                    updateStatusText(`Bet set to ${gameState.currentBet.toFixed(2)} SC`);
+                });
+            });
+            claimBtn.addEventListener('click', closeWinModal);
+            shareBtn.addEventListener('click', handleShareWin);
+            document.getElementById('infoBtn').addEventListener('click', showInfo);
+        }
+
+        function loadPlayerBalance() {
+            // Try to get balance from parent window or global function
+            if (typeof window.parent !== 'undefined' && window.parent.getPlayerSCBalance) {
+                gameState.balance = window.parent.getPlayerSCBalance();
+            } else if (typeof getPlayerSCBalance === 'function') {
+                gameState.balance = getPlayerSCBalance();
+            } else {
+                // Demo balance
+                gameState.balance = 100;
+            }
+            updateBalanceDisplay();
+        }
+
+        function updateBalanceDisplay() {
+            balanceDisplay.textContent = gameState.balance.toFixed(2);
+        }
+
+        function recordWalletTransaction(type, amount, game = 'CoinKrazy-4EgyptPots') {
+            // Try to record transaction in parent
+            if (typeof window.parent !== 'undefined' && window.parent.recordGameTransaction) {
+                window.parent.recordGameTransaction({
+                    game,
+                    type,
+                    amount,
+                    timestamp: new Date().toISOString()
+                });
+            } else if (typeof recordGameTransaction === 'function') {
+                recordGameTransaction({ game, type, amount, timestamp: new Date().toISOString() });
+            }
+        }
+
+        function initializeReels() {
+            const symbols = Object.values(GAME_CONFIG.symbols);
+            gameState.reels = [];
+            for (let col = 0; col < GAME_CONFIG.cols; col++) {
+                gameState.reels[col] = [];
+                for (let row = 0; row < GAME_CONFIG.rows; row++) {
+                    const rand = Math.random();
+                    let symbol;
+                    if (rand < 0.05) symbol = GAME_CONFIG.symbols.wild;
+                    else if (rand < 0.15) symbol = GAME_CONFIG.symbols.bonus;
+                    else if (rand < 0.25) symbol = GAME_CONFIG.symbols.queen;
+                    else if (rand < 0.35) symbol = GAME_CONFIG.symbols.horus;
+                    else if (rand < 0.45) symbol = GAME_CONFIG.symbols.scarab;
+                    else if (rand < 0.55) symbol = GAME_CONFIG.symbols.ankh;
+                    else if (rand < 0.70) symbol = GAME_CONFIG.symbols.k;
+                    else if (rand < 0.80) symbol = GAME_CONFIG.symbols.q;
+                    else if (rand < 0.90) symbol = GAME_CONFIG.symbols.j;
+                    else symbol = GAME_CONFIG.symbols.ten;
+                    gameState.reels[col][row] = symbol;
+                }
+            }
+        }
+
+        function handleSpin() {
+            if (gameState.isSpinning) return;
+            if (gameState.balance < gameState.currentBet) {
+                updateStatusText('❌ Insufficient balance!');
+                return;
+            }
+
+            gameState.isSpinning = true;
+            spinBtn.disabled = true;
+
+            // Deduct bet
+            gameState.balance -= gameState.currentBet;
+            recordWalletTransaction('bet', -gameState.currentBet);
+            updateBalanceDisplay();
+
+            // Spin animation
+            let spinCount = 0;
+            const spinInterval = setInterval(() => {
+                initializeReels();
+                drawGame();
+                spinCount++;
+                if (spinCount > 30) {
+                    clearInterval(spinInterval);
+                    processSpinResult();
+                }
+            }, 50);
+
+            updateStatusText('Spinning...');
+        }
+
+        function processSpinResult() {
+            let totalWin = calculateWins();
+
+            // Cap the win at 10 SC
+            totalWin = Math.min(totalWin, GAME_CONFIG.maxWin);
+
+            // Update pot meters based on bonus symbols
+            updatePotMeters();
+
+            // Check for Hold & Win bonus
+            const bonusCount = countBonusSymbols();
+            if (bonusCount >= 6 || gameState.potMeters.some(m => m >= 100)) {
+                gameState.inBonus = true;
+                gameState.respinsLeft = 3;
+                gameState.stickySymbols = getStickyStickySymbols();
+                updateStatusText('🎰 HOLD & WIN BONUS TRIGGERED! 3 RESPINS!');
+                handleBonusRespin(totalWin);
+            } else {
+                if (totalWin > 0) {
+                    gameState.balance += totalWin;
+                    gameState.lastWin = totalWin;
+                    recordWalletTransaction('win', totalWin);
+                    updateBalanceDisplay();
+                    showWinModal(totalWin);
+                } else {
+                    updateStatusText('No win this spin. Try again!');
+                    gameState.isSpinning = false;
+                    spinBtn.disabled = false;
+                }
+            }
+
+            drawGame();
+        }
+
+        function calculateWins() {
+            let totalWin = 0;
+            const paylines = generatePaylines();
+
+            paylines.forEach((line, lineIdx) => {
+                const symbols = line.map(pos => gameState.reels[pos.col][pos.row]);
+                
+                // Check for 3, 4, 5 of a kind
+                for (let length = 5; length >= 3; length--) {
+                    for (let i = 0; i <= 5 - length; i++) {
+                        if (symbols.slice(i, i + length).every(s => s.id === symbols[i].id)) {
+                            const symbol = symbols[i];
+                            const payIndex = length - 3; // 0 for 3, 1 for 4, 2 for 5
+                            const pay = symbol.pay[payIndex];
+                            totalWin += gameState.currentBet * pay;
+                            break;
+                        }
+                    }
+                }
+            });
+
+            return totalWin;
+        }
+
+        function generatePaylines() {
+            const lines = [
+                [{ col: 0, row: 1 }, { col: 1, row: 1 }, { col: 2, row: 1 }, { col: 3, row: 1 }, { col: 4, row: 1 }], // Middle
+                [{ col: 0, row: 0 }, { col: 1, row: 0 }, { col: 2, row: 0 }, { col: 3, row: 0 }, { col: 4, row: 0 }], // Top
+                [{ col: 0, row: 2 }, { col: 1, row: 2 }, { col: 2, row: 2 }, { col: 3, row: 2 }, { col: 4, row: 2 }], // Bottom
+                [{ col: 0, row: 0 }, { col: 1, row: 1 }, { col: 2, row: 2 }, { col: 3, row: 1 }, { col: 4, row: 0 }],
+                [{ col: 0, row: 2 }, { col: 1, row: 1 }, { col: 2, row: 0 }, { col: 3, row: 1 }, { col: 4, row: 2 }],
+            ];
+            // Add more varied paylines up to 20
+            return lines.slice(0, 20);
+        }
+
+        function countBonusSymbols() {
+            let count = 0;
+            gameState.reels.forEach(col => {
+                col.forEach(symbol => {
+                    if (symbol.isBonus) count++;
+                });
+            });
+            return count;
+        }
+
+        function updatePotMeters() {
+            // Simulate pot meter filling (progress symbols increment pots)
+            gameState.reels.forEach(col => {
+                col.forEach((symbol, idx) => {
+                    if (symbol.isProg) {
+                        const potIdx = parseInt(symbol.id.charAt(1));
+                        gameState.potMeters[potIdx] += 25;
+                    }
+                });
+            });
+        }
+
+        function getStickyStickySymbols() {
+            const sticky = [];
+            gameState.reels.forEach((col, colIdx) => {
+                col.forEach((symbol, rowIdx) => {
+                    if (symbol.isBonus) {
+                        sticky.push({ col: colIdx, row: rowIdx, symbol });
+                    }
+                });
+            });
+            return sticky;
+        }
+
+        function handleBonusRespin(carryOverWin) {
+            // Hold & Win feature with respins
+            const respin = () => {
+                if (gameState.respinsLeft <= 0) {
+                    gameState.inBonus = false;
+                    const bonusWin = carryOverWin + calculateWins();
+                    gameState.balance += bonusWin;
+                    recordWalletTransaction('win', bonusWin);
+                    updateBalanceDisplay();
+                    showWinModal(bonusWin);
+                    gameState.isSpinning = false;
+                    spinBtn.disabled = false;
+                    return;
+                }
+
+                gameState.respinsLeft--;
+                initializeReels();
+
+                // Restore sticky symbols
+                gameState.stickySymbols.forEach(sticky => {
+                    gameState.reels[sticky.col][sticky.row] = sticky.symbol;
+                });
+
+                drawGame();
+                updateStatusText(`Hold & Win: ${gameState.respinsLeft} respins left`);
+
+                setTimeout(respin, 1500);
+            };
+
+            setTimeout(respin, 1000);
+        }
+
+        function updatePotDisplay() {
+            potFills.forEach((fill, idx) => {
+                const percent = Math.min(gameState.potMeters[idx], 100);
+                fill.style.width = percent + '%';
+            });
+        }
+
+        function drawGame() {
+            // Clear canvas
+            ctx.fillStyle = '#1a1f3a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw background
+            drawEgyptianBackground();
+
+            // Draw reels
+            const symbolWidth = canvas.width / GAME_CONFIG.cols;
+            const symbolHeight = canvas.height / GAME_CONFIG.rows;
+
+            gameState.reels.forEach((col, colIdx) => {
+                col.forEach((symbol, rowIdx) => {
+                    const x = colIdx * symbolWidth;
+                    const y = rowIdx * symbolHeight;
+                    drawSymbol(symbol, x, y, symbolWidth, symbolHeight);
+                });
+            });
+
+            updatePotDisplay();
+        }
+
+        function drawEgyptianBackground() {
+            // Simple Egyptian theme background
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            gradient.addColorStop(0, '#8b6914');
+            gradient.addColorStop(0.5, '#6b4914');
+            gradient.addColorStop(1, '#4b3914');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Add pyramid shapes
+            ctx.fillStyle = 'rgba(212, 175, 55, 0.1)';
+            ctx.beginPath();
+            ctx.moveTo(canvas.width * 0.8, canvas.height * 0.2);
+            ctx.lineTo(canvas.width, canvas.height * 0.5);
+            ctx.lineTo(canvas.width * 0.6, canvas.height * 0.5);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function drawSymbol(symbol, x, y, w, h) {
+            // Draw symbol background
+            ctx.fillStyle = '#2a2a4a';
+            ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
+
+            // Draw symbol border
+            ctx.strokeStyle = '#d4af37';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x + 2, y + 2, w - 4, h - 4);
+
+            // Draw symbol icon
+            ctx.fillStyle = '#d4af37';
+            ctx.font = 'bold 30px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            const icons = {
+                'W': '👑', 'Q': '👸', 'H': '👁️', 'S': '🪲', 'A': '☥️',
+                'K': '🄺', 'Q2': '🄳', 'J': '🄹', '10': '10',
+                'B': '💰', 'P0': '1️⃣', 'P1': '2️⃣', 'P2': '3️⃣', 'P3': '4️⃣',
+                'M': '❓'
+            };
+
+            ctx.fillText(icons[symbol.id] || '?', x + w / 2, y + h / 2);
+
+            // Draw glow for premium symbols
+            if (!symbol.isProg && !symbol.isMystery && !symbol.isBonus) {
+                ctx.shadowColor = '#ffff00';
+                ctx.shadowBlur = 10;
+                ctx.strokeStyle = '#ffff00';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x + 2, y + 2, w - 4, h - 4);
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        function updateStatusText(text) {
+            statusText.textContent = text;
+            document.getElementById('statusMobile').textContent = text;
+        }
+
+        function showWinModal(amount) {
+            winAmount.textContent = amount.toFixed(2) + ' SC';
+            winModal.classList.add('show');
+        }
+
+        function closeWinModal() {
+            winModal.classList.remove('show');
+            gameState.isSpinning = false;
+            spinBtn.disabled = false;
+            updateStatusText('Ready to spin!');
+        }
+
+        function handleShareWin() {
+            const winAmt = gameState.lastWin.toFixed(2);
+            const text = `I just won ${winAmt} SC playing CoinKrazy-4EgyptPots on PlayCoinKrazy.com! 🔥 Come join the fun!`;
+            
+            // Get referral link if available
+            let referralLink = 'https://playcoinkrazy.com';
+            if (typeof window.parent !== 'undefined' && window.parent.getPlayerReferralLink) {
+                referralLink = window.parent.getPlayerReferralLink();
+            } else if (typeof getPlayerReferralLink === 'function') {
+                referralLink = getPlayerReferralLink();
+            }
+
+            const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(referralLink)}&quote=${encodeURIComponent(text)}`;
+            window.open(shareUrl, 'facebook-share-dialog', 'width=626,height=436');
+        }
+
+        function showInfo() {
+            alert(`CoinKrazy-4EgyptPots
+🏛️ 5×3 REEL GRID
+🎯 20 PAYLINES
+💰 RTP: 96.3%
+
+FEATURES:
+• Hold & Win Bonus (6+ Bonus Coins)
+• 4 Pot Features (Boost, Collect, Multi, Jackpot)
+• Progressive Multipliers
+• Mystery Symbols
+
+PAYTABLE:
+Wild (W): 0.5×–10× coins
+Queen: 7.5×
+Eye of Horus: 5×
+Scarab: 5×
+Ankh: 5×
+K, Q, J, 10: 2.5×
+
+PlayCoinKrazy.com © 2025`);
+        }
+
+        // Start the game
+        init();
+        betButtons[4].click(); // Set default bet to 1.00
+    </script>
+</body>
+</html>

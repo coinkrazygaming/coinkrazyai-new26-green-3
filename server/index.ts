@@ -417,6 +417,7 @@ import { handleCoinKrazyThunderSpin, handleGetThunderStats } from "./routes/coin
 import { handleCoinKrazyCoinUpSpin } from "./routes/coinkrazy-coinup";
 import { handleCoinKrazyCoinHotSpin } from "./routes/coinkrazy-coinhot";
 import { handleCoinKrazy4WolfsSpin } from "./routes/coinkrazy-4wolfs";
+import { handleCoinKrazy4EgyptPotsSpin } from "./routes/coinkrazy-4egypt-pots";
 import {
   listPlayerTickets,
   createPlayerTicket,
@@ -564,6 +565,7 @@ export function createServer() {
   app.post("/api/coinkrazy-thunder/spin", verifyPlayer, handleCoinKrazyThunderSpin);
   app.get("/api/coinkrazy-thunder/stats", verifyPlayer, handleGetThunderStats);
   app.post("/api/coinkrazy-4wolfs/spin", verifyPlayer, handleCoinKrazy4WolfsSpin);
+  app.post("/api/coinkrazy-4egypt-pots/spin", verifyPlayer, handleCoinKrazy4EgyptPotsSpin);
 
   // ===== ADMIN ROUTES =====
   app.post("/api/admin/login", handleAdminLogin);

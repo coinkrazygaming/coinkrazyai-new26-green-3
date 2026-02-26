@@ -531,6 +531,34 @@ const seedDatabase = async () => {
         console.log('[DB] CoinKrazy-4Wolfs game already exists or error:', err.message?.substring(0, 100));
       }
 
+      // Add CoinKrazy-4EgyptPots as a featured game
+      try {
+        await query(
+          `INSERT INTO games (name, slug, category, type, provider, rtp, volatility, description, image_url, thumbnail, embed_url, launch_url, enabled, is_branded_popup, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+           ON CONFLICT (slug) DO UPDATE SET image_url = EXCLUDED.image_url, thumbnail = EXCLUDED.thumbnail, updated_at = CURRENT_TIMESTAMP`,
+          [
+            'CoinKrazy-4EgyptPots',
+            'coinkrazy-4egypt-pots',
+            'Slots',
+            'slots',
+            'CoinKrazy Studios',
+            96.3,
+            'Medium-High',
+            'Discover the treasures of ancient Egypt! Spin the 5×3 reels and unlock four mystical pot features. With Hold & Win bonus, progressive pot meters, and massive multipliers, your fortune awaits in the land of the pharaohs! 🏛️💰 PlayCoinKrazy.com',
+            'https://images.pexels.com/photos/3652087/pexels-photo-3652087.jpeg?w=400&h=300&fit=crop',
+            'https://images.pexels.com/photos/3652087/pexels-photo-3652087.jpeg?w=200&h=150&fit=crop',
+            '/coinkrazy-4egypt-pots',
+            '/coinkrazy-4egypt-pots',
+            true,
+            true
+          ]
+        );
+        console.log('[DB] Added CoinKrazy-4EgyptPots game');
+      } catch (err: any) {
+        console.log('[DB] CoinKrazy-4EgyptPots game already exists or error:', err.message?.substring(0, 100));
+      }
+
       // Seed bonuses
       const bonuses = [
         ['Welcome Bonus 100%', 'Deposit', '$100', 100, 10, 1200],
