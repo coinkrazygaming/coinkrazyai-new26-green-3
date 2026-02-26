@@ -41,7 +41,8 @@ const AdminPlayers = () => {
       setIsLoading(true);
       const response = await adminV2.players.list(page, limit, searchTerm, statusFilter, kycFilter);
       const data = response.data || response;
-      setPlayers(data.players || []);
+      const playersList = Array.isArray(data) ? data : (data.players || []);
+      setPlayers(Array.isArray(playersList) ? playersList : []);
       setTotal(data.total || 0);
     } catch (error) {
       console.error('Failed to fetch players:', error);
@@ -94,7 +95,7 @@ const AdminPlayers = () => {
   };
 
   const totalPages = Math.ceil(total / limit);
-  const filteredPlayers = players;
+  const filteredPlayers = Array.isArray(players) ? players : [];
 
   const handleViewPlayer = (player: Player) => {
     setSelectedPlayer(selectedPlayer?.id === player.id ? null : player);
@@ -248,7 +249,7 @@ const AdminPlayers = () => {
                 <TrendingUp className="w-4 h-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${filteredPlayers.reduce((sum, p) => sum + (p.total_wagered || 0), 0).toFixed(2)}</div>
+                <div className="text-2xl font-bold">${Array.isArray(filteredPlayers) ? filteredPlayers.reduce((sum, p) => sum + (p.total_wagered || 0), 0).toFixed(2) : '0.00'}</div>
               </CardContent>
             </Card>
             <Card>
@@ -256,7 +257,7 @@ const AdminPlayers = () => {
                 <CardTitle className="text-sm">Avg Value</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${(filteredPlayers.reduce((sum, p) => sum + (p.total_won || 0), 0) / (filteredPlayers.length || 1)).toFixed(2)}</div>
+                <div className="text-2xl font-bold">${Array.isArray(filteredPlayers) ? (filteredPlayers.reduce((sum, p) => sum + (p.total_won || 0), 0) / (filteredPlayers.length || 1)).toFixed(2) : '0.00'}</div>
               </CardContent>
             </Card>
           </div>
