@@ -400,12 +400,13 @@ const SlotsGame: React.FC<{ gameId?: string | number; gameName?: string }> = ({
             {/* Quick Bet Buttons */}
             <div>
               <p className="text-xs text-muted-foreground mb-2">Quick Bets</p>
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-5 gap-1 md:gap-2">
                 {quickBets.map((bet) => (
                   <Button
                     key={bet}
                     variant={betAmount === bet ? 'default' : 'outline'}
                     size="sm"
+                    className="text-xs md:text-sm"
                     onClick={() => setBetAmount(Math.min(bet, maxBet))}
                     disabled={isSpinning}
                   >
@@ -417,22 +418,24 @@ const SlotsGame: React.FC<{ gameId?: string | number; gameName?: string }> = ({
           </div>
 
           {/* Controls */}
-          <div className="flex gap-4">
+          <div className="flex flex-col md:flex-row gap-3 md:gap-4">
             <Button
               size="lg"
               onClick={performSpin}
               disabled={isSpinning || balance < totalBet}
-              className="flex-1 gap-2 text-lg font-bold h-14"
+              className="flex-1 gap-2 text-base md:text-lg font-bold h-12 md:h-14"
             >
               {isSpinning ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  SPINNING...
+                  <Loader2 className="w-4 md:w-5 h-4 md:h-5 animate-spin" />
+                  <span className="hidden sm:inline">SPINNING...</span>
+                  <span className="sm:hidden">...</span>
                 </>
               ) : (
                 <>
-                  <Zap className="w-5 h-5" />
-                  SPIN {totalBet.toFixed(2)} SC
+                  <Zap className="w-4 md:w-5 h-4 md:h-5" />
+                  <span className="hidden sm:inline">SPIN {totalBet.toFixed(2)} SC</span>
+                  <span className="sm:hidden">SPIN</span>
                 </>
               )}
             </Button>
@@ -441,9 +444,9 @@ const SlotsGame: React.FC<{ gameId?: string | number; gameName?: string }> = ({
               size="lg"
               variant="outline"
               onClick={() => setSoundEnabled(!soundEnabled)}
-              className="w-14"
+              className="h-12 md:h-14 w-12 md:w-14"
             >
-              {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+              {soundEnabled ? <Volume2 className="w-4 md:w-5 h-4 md:h-5" /> : <VolumeX className="w-4 md:w-5 h-4 md:h-5" />}
             </Button>
           </div>
 
