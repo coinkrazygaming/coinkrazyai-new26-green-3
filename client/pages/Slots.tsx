@@ -3,11 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Search, Filter, Grid, List as ListIcon, Upload } from 'lucide-react';
+import { Loader2, Search, Filter, Grid, List as ListIcon, Upload, Gamepad2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { games, adminApiCall } from '@/lib/api';
 import { ImportedGameCard } from '@/components/slots/ImportedGameCard';
 import { ALL_SLOT_GAMES } from '@shared/slotGamesDatabase';
+import SlotsGame from '@/components/slots/SlotsGame';
 
 interface Game {
   id: number;
@@ -36,6 +37,8 @@ const Slots = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [isImportingFromDb, setIsImportingFromDb] = useState(false);
+  const [playingGameId, setPlayingGameId] = useState<string | number | null>(null);
+  const [playingGameName, setPlayingGameName] = useState<string>('');
 
   // Fetch games on mount
   useEffect(() => {
@@ -131,6 +134,25 @@ const Slots = () => {
     }
   };
 
+  // If a game is being played, show the game instead
+  if (playingGameId) {
+    return (
+      <div className="space-y-6">
+        <Button
+          variant="outline"
+          onClick={() => {
+            setPlayingGameId(null);
+            setPlayingGameName('');
+          }}
+          className="gap-2"
+        >
+          ← Back to Lobby
+        </Button>
+        <SlotsGame gameId={playingGameId} gameName={playingGameName} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -140,6 +162,29 @@ const Slots = () => {
           Explore our collection of {gamesList.length} slot games from various providers
         </p>
       </div>
+
+      {/* Classic Slots Game Button */}
+      <Card className="border-primary/50 bg-gradient-to-r from-primary/10 to-blue-500/10">
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-lg mb-1">Classic Slots</h3>
+              <p className="text-sm text-muted-foreground">5 Reels • 10 Paylines • Play Now</p>
+            </div>
+            <Button
+              size="lg"
+              onClick={() => {
+                setPlayingGameId('classic-slots');
+                setPlayingGameName('Classic Slots');
+              }}
+              className="gap-2"
+            >
+              <Gamepad2 className="w-5 h-5" />
+              Play Now
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Stats Bar */}
       {!isLoading && gamesList.length > 0 && (
