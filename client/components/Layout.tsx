@@ -51,20 +51,31 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   React.useEffect(() => {
     const fetchStatus = async () => {
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
         const response = await fetch('/api/ai/status', {
-          signal: AbortSignal.timeout(5000) // 5 second timeout
+          signal: controller.signal,
+          credentials: 'include'
         });
+
+        clearTimeout(timeoutId);
+
         if (!response.ok) {
-          console.error(`AI status fetch error: ${response.status}`);
+          console.debug(`AI status fetch: ${response.status}`);
           return;
         }
         const data = await response.json();
-        if (data.success && data.data) {
+        if (data && data.data && Array.isArray(data.data)) {
           setAiEmployees(data.data);
+        } else if (Array.isArray(data)) {
+          setAiEmployees(data);
         }
-      } catch (err) {
-        console.debug('Failed to fetch AI status (this is non-critical):', err);
-        // This is non-critical, so we don't log as error
+      } catch (err: any) {
+        // Silently fail - this is non-critical
+        if (err.name !== 'AbortError') {
+          console.debug('AI status request failed (non-critical)');
+        }
       }
     };
 
@@ -72,31 +83,56 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       if (!isAuthenticated) return;
       try {
         const token = localStorage.getItem('auth_token');
-        if (!token) return;
+        if (!token) {
+          setUnreadMessages(0);
+          return;
+        }
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
 
         const response = await fetch('/api/messages/unread', {
+          method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
-          signal: AbortSignal.timeout(5000) // 5 second timeout
+          signal: controller.signal,
+          credentials: 'include'
         });
+
+        clearTimeout(timeoutId);
+
         if (!response.ok) {
-          console.debug(`Unread messages fetch status: ${response.status}`);
+          console.debug(`Unread messages fetch: ${response.status}`);
+          setUnreadMessages(0);
           return;
         }
         const data = await response.json();
-        // The API returns the array directly
-        setUnreadMessages(Array.isArray(data) ? data.length : 0);
-      } catch (err) {
-        console.debug('Failed to fetch unread messages (this is non-critical):', err);
-        // This is non-critical, so we don't log as error
+        // Handle both array and object responses
+        if (Array.isArray(data)) {
+          setUnreadMessages(data.length);
+        } else if (data && typeof data === 'object' && 'count' in data) {
+          setUnreadMessages(data.count);
+        } else if (data && typeof data === 'object' && 'data' in data) {
+          setUnreadMessages(Array.isArray(data.data) ? data.data.length : 0);
+        } else {
+          setUnreadMessages(0);
+        }
+      } catch (err: any) {
+        // Silently fail - this is non-critical
+        if (err.name !== 'AbortError') {
+          console.debug('Unread messages request failed (non-critical)');
+        }
+        setUnreadMessages(0);
       }
     };
 
+    // Initial fetch
     fetchStatus();
     if (isAuthenticated) fetchUnread();
 
+    // Periodic refresh every 30 seconds
     const interval = setInterval(() => {
       fetchStatus();
       if (isAuthenticated) fetchUnread();
