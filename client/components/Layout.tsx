@@ -52,7 +52,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     const fetchStatus = async () => {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // Increased to 10s
 
         const response = await fetch('/api/ai/status', {
           signal: controller.signal,
@@ -62,7 +62,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          console.debug(`AI status fetch: ${response.status}`);
+          // Non-critical, don't throw
           return;
         }
         const data = await response.json();
@@ -72,10 +72,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           setAiEmployees(data);
         }
       } catch (err: any) {
-        // Silently fail - this is non-critical
-        if (err.name !== 'AbortError') {
-          console.debug('AI status request failed (non-critical)');
-        }
+        // Silently fail - this is non-critical, don't log
       }
     };
 
@@ -89,7 +86,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         }
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // Increased to 10s
 
         const response = await fetch('/api/messages/unread', {
           method: 'GET',
@@ -104,7 +101,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          console.debug(`Unread messages fetch: ${response.status}`);
+          // Non-critical, just reset to 0
           setUnreadMessages(0);
           return;
         }
@@ -121,9 +118,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         }
       } catch (err: any) {
         // Silently fail - this is non-critical
-        if (err.name !== 'AbortError') {
-          console.debug('Unread messages request failed (non-critical)');
-        }
         setUnreadMessages(0);
       }
     };

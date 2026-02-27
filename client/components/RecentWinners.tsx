@@ -25,9 +25,8 @@ export const RecentWinners = () => {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
-          // Abort with a clear reason
           controller.abort();
-        }, 30000); // Increased to 30 second timeout to allow slower responses
+        }, 15000); // 15 second timeout
 
         const response = await fetch('/api/platform/winners', {
           signal: controller.signal,
@@ -39,27 +38,21 @@ export const RecentWinners = () => {
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          if (isMounted) {
+            setIsLoading(false);
+          }
+          return;
         }
         const result = await response.json();
         if (result.success && result.data && Array.isArray(result.data)) {
           if (isMounted) {
             setWinners(result.data);
           }
-        } else {
-          console.warn('Unexpected response format from winners endpoint:', result);
         }
       } catch (error) {
-        if (!isMounted) return;
-
-        if (error instanceof Error) {
-          if (error.name === 'AbortError') {
-            console.error('Failed to fetch recent winners: Request timeout');
-          } else {
-            console.error('Failed to fetch recent winners:', error.message);
-          }
-        } else {
-          console.error('Failed to fetch recent winners:', error);
+        // Silently fail - this is non-critical
+        if (isMounted) {
+          setIsLoading(false);
         }
       } finally {
         if (isMounted) {

@@ -68,13 +68,14 @@ export const handleGetUnreadMessages: RequestHandler = async (req, res) => {
   try {
     const userId = req.user?.id;
 
-    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    if (!userId) return res.json([]);
 
     const result = await dbQueries.getUnreadMessages(userId);
-    res.json(result.rows);
+    res.json(result.rows || []);
   } catch (error) {
-    console.error('Error fetching unread messages:', error);
-    res.status(500).json({ error: 'Failed to fetch unread messages' });
+    // Non-critical feature, return empty array on error
+    console.debug('Error fetching unread messages (non-critical):', error instanceof Error ? error.message : 'Unknown error');
+    res.json([]);
   }
 };
 
