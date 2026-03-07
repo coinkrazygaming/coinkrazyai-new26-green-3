@@ -1,6 +1,8 @@
 import { RequestHandler } from 'express';
 import * as dbQueries from '../db/queries';
 import { emitAdminNotification } from '../socket';
+import { emailService } from '../services/email-service';
+import { query } from '../db/connection';
 
 export const handleCreateNotification: RequestHandler = async (req, res) => {
   try {
@@ -27,6 +29,24 @@ export const handleCreateNotification: RequestHandler = async (req, res) => {
 
     const notification = result.rows[0];
     emitAdminNotification(notification);
+
+    // Send email to admin if applicable
+    try {
+      let adminEmail = process.env.ADMIN_NOTIFICATIONS_EMAIL;
+
+      if (notifiedAdminId) {
+        const adminResult = await query('SELECT email FROM admin_users WHERE id = $1', [notifiedAdminId]);
+        if (adminResult.rows.length > 0) {
+          adminEmail = adminResult.rows[0].email;
+        }
+      }
+
+      if (adminEmail) {
+        await emailService.sendAdminNotification(adminEmail, notification);
+      }
+    } catch (e) {
+      console.warn('[Admin Notifications] Failed to send email alert:', e);
+    }
 
     res.json(notification);
   } catch (error) {

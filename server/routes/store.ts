@@ -348,8 +348,11 @@ export const handleStripeWebhook: RequestHandler = async (req, res) => {
     }
 
     // Verify webhook signature
+    // Use rawBody if available (from express.json verify middleware)
+    const rawBody = (req as any).rawBody || JSON.stringify(req.body);
+
     const event = await StripeService.verifyWebhookSignature(
-      JSON.stringify(req.body),
+      rawBody,
       signature
     );
 

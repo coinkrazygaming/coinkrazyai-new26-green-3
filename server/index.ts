@@ -454,6 +454,21 @@ import {
 export function createServer() {
   const app = express();
 
+  // Validate critical environment variables
+  const criticalEnvVars = ['DATABASE_URL', 'JWT_SECRET'];
+  const missingVars = criticalEnvVars.filter(v => !process.env[v]);
+  if (missingVars.length > 0) {
+    console.error(`[CRITICAL] Missing environment variables: ${missingVars.join(', ')}`);
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[CRITICAL] Terminating process due to missing environment variables');
+      process.exit(1);
+    }
+  }
+
+  if (process.env.JWT_SECRET === 'your-secret-key-change-in-production') {
+    console.warn('[SECURITY] Using default JWT_SECRET. Please change this in production!');
+  }
+
   // Initialize database
   initializeDatabase().catch(err => {
     console.error('Failed to initialize database:', err);
@@ -465,11 +480,42 @@ export function createServer() {
 
   // Security Middleware
   app.use(helmet({
-    contentSecurityPolicy: false, // Vite handles CSP in dev
+    contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://api.dicebear.com", "https://js.stripe.com"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:", "https://api.dicebear.com"],
+        connectSrc: ["'self'", "ws:", "wss:", "https://api.dicebear.com", "https://api.stripe.com"],
+        fontSrc: ["'self'", "data:"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'", "https:"],
+        frameSrc: ["'self'", "https:", "https://js.stripe.com"],
+      },
+    } : false,
   }));
-  app.use(cors());
+
+  const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['*'];
+  app.use(cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`[CORS] Blocked request from origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true
+  }));
   app.use(cookieParser());
-  app.use(express.json());
+  app.use(express.json({
+    verify: (req: any, _res, buf) => {
+      if (req.originalUrl.startsWith('/api/store/webhook')) {
+        req.rawBody = buf.toString();
+      }
+    }
+  }));
   app.use(express.urlencoded({ extended: true }));
 
   // Rate Limiting
@@ -486,6 +532,26 @@ export function createServer() {
   app.use((req, _res, next) => {
     console.log(`[HTTP] ${req.method} ${req.url}`);
     next();
+  });
+
+  // ===== HEALTH CHECK ROUTES =====
+  app.get("/api/health", (_req, res) => {
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      env: process.env.NODE_ENV
+    });
+  });
+
+  app.get("/api/ready", async (_req, res) => {
+    try {
+      // Check DB connection
+      await query('SELECT 1');
+      res.json({ status: 'ready', database: 'connected' });
+    } catch (error: any) {
+      res.status(503).json({ status: 'not ready', database: 'disconnected', error: error.message });
+    }
   });
 
   // ===== AUTH ROUTES =====
