@@ -185,6 +185,52 @@ export class StripeService {
           // Record purchase
           await recordPurchase(playerId, packId, amountUsd, gcAmount, scAmount, session.id);
 
+          // Check for pending referral and complete it
+          try {
+            const { query: dbQuery } = await import('../db/connection');
+            const pendingReferral = await dbQuery(
+              'SELECT id FROM referral_claims WHERE referred_player_id = $1 AND status = \'pending\'',
+              [playerId]
+            );
+
+            if (pendingReferral.rows.length > 0) {
+              const { handleCompleteReferralClaim } = await import('../routes/referral-system');
+              // We need a mock req/res or just extract the logic
+              const claimId = pendingReferral.rows[0].id;
+
+              // Direct DB call to complete instead of route handler for service context
+              const { completeReferralClaim, recordWalletTransaction: recordTx } = await import('../db/queries');
+              const { emailService } = await import('./email-service');
+
+              const completedResult = await completeReferralClaim(claimId);
+              const claim = completedResult.rows[0];
+
+              if (claim && claim.status === 'completed') {
+                await recordTx(
+                  claim.referrer_id,
+                  'ReferralBonus',
+                  claim.referral_bonus_gc,
+                  claim.referral_bonus_sc,
+                  `Referral bonus for inviting player ${playerId}`
+                );
+
+                // Notify referrer
+                const referrerRes = await dbQuery('SELECT email, name, username FROM players WHERE id = $1', [claim.referrer_id]);
+                if (referrerRes.rows.length > 0) {
+                  await emailService.sendReferralCompletedNotification(
+                    referrerRes.rows[0].email,
+                    referrerRes.rows[0].name || referrerRes.rows[0].username,
+                    claim.referral_bonus_sc,
+                    claim.referral_bonus_gc
+                  );
+                }
+                console.log(`[Referral] Completed referral claim ${claimId} for player ${playerId}`);
+              }
+            }
+          } catch (refError) {
+            console.warn('[Referral] Failed to complete referral during purchase:', refError);
+          }
+
           // Update wallet
           const result = await recordWalletTransaction(
             playerId,

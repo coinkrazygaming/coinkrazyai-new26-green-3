@@ -1,5 +1,6 @@
 import { RequestHandler } from "express";
 import * as db from "../db/queries";
+import { S3Service } from "../services/s3-service";
 
 // Get admin dashboard stats
 export const getAdminDashboardStats: RequestHandler = async (req, res) => {
@@ -248,9 +249,29 @@ export const getKYCDocs: RequestHandler = async (req, res) => {
     const { playerId } = req.params;
     const result = await db.getKYCDocuments(parseInt(Array.isArray(playerId) ? playerId[0] : playerId));
 
+    // Generate signed URLs for S3 documents
+    const documents = await Promise.all(result.rows.map(async (doc) => {
+      if (doc.document_url && doc.document_url.includes('.s3.amazonaws.com')) {
+        try {
+          // Extract key from URL: https://bucket.s3.amazonaws.com/key
+          const urlParts = doc.document_url.split('.s3.amazonaws.com/');
+          if (urlParts.length > 1) {
+            const key = urlParts[1];
+            const signedUrlResult = await S3Service.getSignedDownloadUrl(key);
+            if (signedUrlResult.success) {
+              return { ...doc, document_url: signedUrlResult.url, is_private: true };
+            }
+          }
+        } catch (e) {
+          console.error('[Admin] Failed to generate signed URL for:', doc.document_url, e);
+        }
+      }
+      return doc;
+    }));
+
     res.json({
       success: true,
-      data: result.rows,
+      data: documents,
     });
   } catch (error) {
     console.error("Error fetching KYC documents:", error);

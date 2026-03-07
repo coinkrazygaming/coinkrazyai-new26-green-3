@@ -30,7 +30,8 @@ export class S3Service {
     fileBuffer: Buffer,
     fileName: string,
     mimeType: string,
-    folder: string = 'general'
+    folder: string = 'general',
+    isPrivate: boolean = false
   ) {
     try {
       const key = `${folder}/${Date.now()}-${fileName}`;
@@ -39,7 +40,7 @@ export class S3Service {
         Key: key,
         Body: fileBuffer,
         ContentType: mimeType,
-        ACL: 'public-read',
+        ACL: isPrivate ? 'private' : 'public-read',
       });
 
       const client = getS3Client();
@@ -58,7 +59,7 @@ export class S3Service {
     playerId: number,
     documentType: string
   ) {
-    return this.uploadFile(fileBuffer, fileName, 'application/pdf', `kyc/${playerId}/${documentType}`);
+    return this.uploadFile(fileBuffer, fileName, 'application/pdf', `kyc/${playerId}/${documentType}`, true);
   }
 
   static async uploadGameAsset(

@@ -9,20 +9,16 @@ export async function apiCall<T>(
 ): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
   console.log(`[apiCall] Fetching: ${url}`);
-  const token = localStorage.getItem('auth_token');
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...options?.headers,
   };
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
   const response = await fetch(url, {
     ...options,
     headers,
+    credentials: 'include',
   });
 
   if (!response.ok) {
@@ -51,26 +47,17 @@ export async function adminApiCall<T>(
   options?: RequestInit
 ): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
-  const token = localStorage.getItem('admin_token');
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...options?.headers,
   };
 
-  if (!token) {
-    console.warn('[Admin API] No admin token found. User must log in.');
-    const error = new Error('Admin not authenticated. Please log in.');
-    (error as any).status = 401;
-    throw error;
-  }
-
-  headers['Authorization'] = `Bearer ${token}`;
-
   try {
     const response = await fetch(url, {
       ...options,
       headers,
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -92,9 +79,6 @@ export async function adminApiCall<T>(
 
     return response.json();
   } catch (error: any) {
-    if (error.message === 'Admin not authenticated. Please log in.') {
-      throw error;
-    }
     console.error(`[Admin API] Request to ${url} failed:`, error.message);
     throw error;
   }
@@ -103,51 +87,28 @@ export async function adminApiCall<T>(
 // ===== AUTHENTICATION =====
 export const auth = {
   register: async (username: string, name: string, email: string, password: string) => {
-    const response = await apiCall<AuthResponse>('/auth/register', {
+    return apiCall<AuthResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ username, name, email, password }),
     });
-    if (response.data?.token) {
-      localStorage.setItem('auth_token', response.data.token);
-    }
-    return response;
   },
 
   login: async (username: string, password: string) => {
-    const response = await apiCall<AuthResponse>('/auth/login', {
+    return apiCall<AuthResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
     });
-    if (response.data?.token) {
-      localStorage.setItem('auth_token', response.data.token);
-    }
-    return response;
   },
 
   adminLogin: async (email: string, password: string) => {
-    const data = await apiCall<any>('/auth/admin/login', {
+    return apiCall<any>('/auth/admin/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
-
-    // Handle both old and new response formats
-    const adminToken = data.adminToken || data.token;
-    if (adminToken) {
-      localStorage.setItem('admin_token', adminToken);
-    }
-
-    // Store player token if available (sitewide admin)
-    if (data.playerToken) {
-      localStorage.setItem('auth_token', data.playerToken);
-    }
-
-    return data;
   },
 
   logout: async () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('admin_token');
-    return { success: true };
+    return apiCall<any>('/auth/logout', { method: 'POST' });
   },
 
   getProfile: async () => {

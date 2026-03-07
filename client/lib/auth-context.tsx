@@ -62,21 +62,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Check if user is already logged in on mount
   useEffect(() => {
     const checkAuth = async () => {
-      const token = localStorage.getItem('auth_token');
-      const adminToken = localStorage.getItem('admin_token');
-
-      if (adminToken) {
-        setIsAdmin(true);
-      }
-
-      if (token) {
-        try {
-          const response = await auth.getProfile();
-          setUser(response.data);
-        } catch (error) {
-          // Token is invalid, clear it
-          localStorage.removeItem('auth_token');
-        }
+      try {
+        const response = await auth.getProfile();
+        setUser(response.data);
+        setIsAdmin(response.data.isAdmin || response.data.role === 'admin');
+      } catch (error) {
+        // Not logged in or token invalid
+        console.log('[AuthContext] No valid session found on mount');
       }
 
       setIsLoading(false);
@@ -112,9 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     setUser(null);
     setIsAdmin(false);
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('admin_token');
-    auth.logout();
+    auth.logout().catch(console.error);
   };
 
   const adminLogin = async (email: string, password: string) => {
@@ -124,9 +114,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsAdmin(true);
 
       // If sitewide admin is recognized (has player profile), set user profile too
-      if (response.playerProfile && response.playerToken) {
+      if (response.playerProfile) {
         setUser(response.playerProfile);
-        localStorage.setItem('auth_token', response.playerToken);
+      } else {
+        // Just call getProfile to refresh state
+        try {
+          const profileResponse = await auth.getProfile();
+          setUser(profileResponse.data);
+          setIsAdmin(true);
+        } catch (e) {}
       }
 
       setIsLoading(false);

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Zap, Volume2, VolumeX, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth-context';
+import { SocialSharePopup } from '@/components/popups/SocialSharePopup';
 import confetti from 'canvas-confetti';
 
 interface SlotsGameEngineProps {
@@ -49,6 +50,8 @@ const SlotsGameEngine: React.FC<SlotsGameEngineProps> = ({ gameId, gameName = 'M
     spinHistory: [],
     soundEnabled: true,
   });
+
+  const [showSharePopup, setShowSharePopup] = useState(false);
 
   // Load user balance on mount
   useEffect(() => {
@@ -142,6 +145,11 @@ const SlotsGameEngine: React.FC<SlotsGameEngineProps> = ({ gameId, gameName = 'M
         spread: 70,
         origin: { y: 0.6 },
       });
+
+      // Show share popup for significant wins
+      if (winnings >= 5) {
+        setShowSharePopup(true);
+      }
 
       // Record spin result
       const spinResult: SpinResult = {
@@ -320,6 +328,15 @@ const SlotsGameEngine: React.FC<SlotsGameEngineProps> = ({ gameId, gameName = 'M
           </div>
         </div>
       )}
+
+      {/* Social Share Popup */}
+      <SocialSharePopup
+        isOpen={showSharePopup}
+        winAmount={gameState.lastWinnings}
+        gameName={gameName}
+        gameId={gameId}
+        onClose={() => setShowSharePopup(false)}
+      />
     </div>
   );
 };

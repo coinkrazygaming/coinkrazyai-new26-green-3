@@ -390,6 +390,66 @@ class EmailService {
       text: `You have a new message from CoinKrazy support: ${messagePreview}`,
     });
   }
+
+  async sendAdminNotification(adminEmail: string, notification: any): Promise<boolean> {
+    const priorityColors: any = {
+      critical: '#d32f2f',
+      high: '#f57c00',
+      medium: '#1976d2',
+      low: '#388e3c'
+    };
+
+    const color = priorityColors[notification.priority] || '#1976d2';
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; overflow: hidden; }
+            .header { background-color: ${color}; color: white; padding: 20px; text-align: center; }
+            .content { padding: 30px; }
+            .meta { background: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px; font-size: 14px; }
+            .footer { padding: 20px; text-align: center; font-size: 12px; color: #999; border-top: 1px solid #eee; }
+            .badge { display: inline-block; padding: 3px 8px; border-radius: 3px; font-size: 10px; font-weight: bold; text-transform: uppercase; color: white; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h2 style="margin:0">${notification.subject}</h2>
+            </div>
+            <div class="content">
+              <div class="meta">
+                <strong>Priority:</strong> <span class="badge" style="background-color: ${color}">${notification.priority}</span><br>
+                <strong>Source:</strong> ${notification.ai_employee_id}<br>
+                <strong>Date:</strong> ${new Date().toLocaleString()}
+              </div>
+
+              <p>${notification.message}</p>
+
+              <div style="margin-top: 30px; text-align: center;">
+                <a href="https://coinkrazy.io/admin?tab=notifications" style="background-color: ${color}; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                  View in Admin Panel
+                </a>
+              </div>
+            </div>
+            <div class="footer">
+              This is an automated administrative notification from CoinKrazy AI.
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    return this.sendEmail({
+      to: adminEmail,
+      subject: `[ADMIN] ${notification.priority.toUpperCase()}: ${notification.subject}`,
+      html,
+      text: `Admin Notification: ${notification.subject}\n\n${notification.message}\n\nPriority: ${notification.priority}\nSource: ${notification.ai_employee_id}`,
+    });
+  }
 }
 
 export const emailService = new EmailService();

@@ -5,12 +5,38 @@ import * as bcrypt from 'bcrypt';
 
 // Register new player
 export const handleRegister: RequestHandler = asyncHandler(async (req, res) => {
-  const { username, name, email, password } = req.body;
+  const { username, name, email, password, referralCode } = req.body;
 
   const result = await AuthService.registerPlayer(username, name, email, password);
 
   if (!result.success) {
     return res.status(400).json(result);
+  }
+
+  const player = result.player;
+
+  // Handle referral if code present
+  if (referralCode) {
+    try {
+      const dbQueries = await import('../db/queries');
+      const linkResult = await dbQueries.getReferralLinkByCode(referralCode);
+      if (linkResult.rows.length > 0) {
+        const referralLink = linkResult.rows[0];
+        const referrerId = referralLink.referrer_id;
+
+        // Create referral claim (pending until first purchase)
+        await dbQueries.createReferralClaim(
+          referrerId,
+          player.id,
+          referralCode,
+          5.00, // Reward for referrer
+          10000 // GC Reward
+        );
+        console.log(`[Referral] Recorded referral for player ${player.id} from referrer ${referrerId}`);
+      }
+    } catch (e) {
+      console.warn('[Referral] Failed to process referral code:', e);
+    }
   }
 
   // Set auth cookie
@@ -92,6 +118,15 @@ export const handleAdminLogin: RequestHandler = asyncHandler(async (req, res) =>
         email: player.email,
         role: 'player'
       }, false);
+
+      // Set auth cookie for the player account too
+      res.cookie('auth_token', playerToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      });
+
       playerProfile = {
         id: player.id,
         username: player.username,
@@ -112,8 +147,6 @@ export const handleAdminLogin: RequestHandler = asyncHandler(async (req, res) =>
 
   res.json({
     success: true,
-    adminToken: result.token,
-    playerToken: playerToken || null,
     admin: result.admin,
     playerProfile: playerProfile || null,
     isSitewideAdmin: !!playerProfile
@@ -138,9 +171,16 @@ export const handleGetProfile: RequestHandler = asyncHandler(async (req, res) =>
     });
   }
 
+  // Check if they also have an admin session
+  const isAdmin = req.cookies?.admin_token ? true : false;
+
   res.json({
     success: true,
-    data: profile
+    data: {
+      ...profile,
+      role: req.user.role,
+      isAdmin: isAdmin || req.user.role === 'admin'
+    }
   });
 });
 

@@ -79,19 +79,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     const fetchUnread = async () => {
       if (!isAuthenticated) return;
       try {
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-          setUnreadMessages(0);
-          return;
-        }
-
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // Increased to 10s
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
 
         const response = await fetch('/api/messages/unread', {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
           signal: controller.signal,
@@ -264,7 +257,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
                 {/* User Dropdown / Profile */}
                 <div className="flex items-center gap-3 border-l border-white/10 pl-6 ml-2">
-                  <Link to="/profile" className="flex items-center gap-3 group">
+                  <Link to="/profile" className="flex items-center gap-3 group relative">
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-white/10 flex items-center justify-center text-white font-black text-xl overflow-hidden relative">
                       {user?.avatar_url ? (
                         <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover" />
@@ -274,7 +267,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                       <div className="absolute bottom-0 inset-x-0 h-1.5 bg-primary" />
                     </div>
                     <div className="hidden xl:flex flex-col items-start">
-                      <span className="text-white font-black text-sm tracking-tight group-hover:text-primary transition-colors">{user?.username}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-white font-black text-sm tracking-tight group-hover:text-primary transition-colors">{user?.username}</span>
+                        {isAdmin && (
+                          <Badge className="bg-red-500/20 text-red-500 border-none text-[8px] font-black uppercase px-1 py-0">ADMIN</Badge>
+                        )}
+                      </div>
                       <Badge className="bg-primary/20 text-primary border-none text-[9px] font-black uppercase px-2 py-0">Platinum VIP</Badge>
                     </div>
                   </Link>
