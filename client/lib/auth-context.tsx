@@ -66,9 +66,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const response = await auth.getProfile();
         setUser(response.data);
         setIsAdmin(response.data.isAdmin || response.data.role === 'admin');
-      } catch (error) {
-        // Not logged in or token invalid
-        console.log('[AuthContext] No valid session found on mount');
+        console.log('[AuthContext] ✓ User authenticated on mount:', response.data.username);
+      } catch (error: any) {
+        // Not logged in or token invalid - this is expected behavior
+        if (error.status === 401) {
+          console.debug('[AuthContext] No session found on mount (user not logged in)');
+        } else {
+          console.error('[AuthContext] Auth check failed:', error.message || error);
+        }
       }
 
       setIsLoading(false);

@@ -28,12 +28,19 @@ export async function apiCall<T>(
       const error = await response.json();
       errorMessage = error.error || error.message || errorMessage;
       errorDetails = error.details || error;
+
       // Only log error message string, not the entire object
-      console.error(`[API Error] ${url}: ${errorMessage}`);
+      // For 401 auth errors, use debug level since they're often expected (user not logged in)
+      if (response.status === 401 && url.includes('/auth/profile')) {
+        console.debug(`[Auth] Not authenticated: ${errorMessage}`);
+      } else {
+        console.error(`[API Error] ${url}: ${errorMessage}`);
+      }
     } catch (e) {
       console.error(`[API Error] ${url}: Failed to parse error response, status: ${response.status}`);
     }
     const err = new Error(errorMessage);
+    (err as any).status = response.status;
     (err as any).details = errorDetails;
     throw err;
   }
