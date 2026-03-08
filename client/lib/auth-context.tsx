@@ -122,7 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const profileResponse = await auth.getProfile();
           setUser(profileResponse.data);
           setIsAdmin(true);
-        } catch (e) {}
+} catch (e) { console.error('Failed to refresh profile after admin login:', e); }
       }
 
       setIsLoading(false);
