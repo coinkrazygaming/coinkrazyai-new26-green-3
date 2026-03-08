@@ -2,255 +2,196 @@ import { query } from './connection';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as bcrypt from 'bcrypt';
+import { createMigrationsHistoryTable, runMigrationsFromDirectory } from './migrations';
+
+// PostgreSQL error codes that are safe to ignore in idempotent operations
+const IGNORABLE_SCHEMA_ERRORS: { [key: string]: string } = {
+  '42703': 'column does not exist',
+  '42701': 'duplicate column',
+  '42P07': 'table already exists',
+  '42710': 'duplicate type',
+  '23503': 'foreign key constraint violation',
+  '42P01': 'relation does not exist',
+};
+
+/**
+ * Execute SQL statements from content string, safely ignoring known errors
+ * @param sqlContent SQL file content as string
+ * @param fileName Name of the file for logging
+ * @param ignorableErrors Error codes to safely ignore
+ */
+async function executeSqlStatements(
+  sqlContent: string,
+  fileName: string,
+  ignorableErrors: { [key: string]: string } = IGNORABLE_SCHEMA_ERRORS
+): Promise<{ executed: number; skipped: number }> {
+  const statements = sqlContent
+    .split(';')
+    .map(stmt => stmt.trim())
+    .filter(stmt => stmt.length > 0);
+
+  let executedCount = 0;
+  let skippedCount = 0;
+
+  for (const statement of statements) {
+    try {
+      await query(statement);
+      executedCount++;
+    } catch (err: any) {
+      if (ignorableErrors[err.code]) {
+        console.log(`[DB] Skipping ${fileName} statement (${ignorableErrors[err.code]})`);
+        skippedCount++;
+      } else {
+        console.error(`[DB] Critical error in ${fileName}:`, {
+          code: err.code,
+          message: err.message?.substring(0, 100),
+          statement: statement.substring(0, 80),
+        });
+        throw err;
+      }
+    }
+  }
+
+  console.log(`[DB] ${fileName}: ${executedCount} executed, ${skippedCount} skipped`);
+  return { executed: executedCount, skipped: skippedCount };
+}
+
+/**
+ * Execute a SQL file if it exists
+ * @param fileName SQL file to execute
+ * @param baseDir Base directory for the file
+ * @param optional If true, don't throw error if file doesn't exist
+ */
+async function executeSqlFile(
+  fileName: string,
+  baseDir: string,
+  optional: boolean = false
+): Promise<boolean> {
+  const filePath = path.join(baseDir, fileName);
+
+  if (!fs.existsSync(filePath)) {
+    if (optional) {
+      console.log(`[DB] Optional file not found: ${fileName}`);
+      return false;
+    } else {
+      throw new Error(`[DB] Critical: ${fileName} not found at ${filePath}`);
+    }
+  }
+
+  console.log(`[DB] Executing ${fileName}...`);
+  try {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const result = await executeSqlStatements(content, fileName);
+    console.log(`[DB] ${fileName} completed successfully`);
+    return true;
+  } catch (error) {
+    console.error(`[DB] Failed to execute ${fileName}:`, error);
+    throw error;
+  }
+}
 
 export const initializeDatabase = async () => {
   try {
     console.log('[DB] Initializing database...');
-
-    // Read and execute schema
     const __dirname = import.meta.dirname;
-    const schemaPath = path.join(__dirname, 'schema.sql');
-    const schema = fs.readFileSync(schemaPath, 'utf-8');
 
-    // Split and execute each statement
-    const statements = schema.split(';').filter(stmt => stmt.trim());
+    // Create migrations tracking table first
+    await createMigrationsHistoryTable();
 
-    for (const statement of statements) {
-      if (statement.trim()) {
-        try {
-          await query(statement);
-        } catch (err: any) {
-          // Log but don't fail on schema errors - the table might already exist with different schema
-          // 42703 = column does not exist, 42701 = duplicate column, 42P07 = table exists, 42710 = type exists
-          if (err.code === '42703' || err.code === '42701' || err.code === '42P07' || err.code === '42710') {
-            console.log('[DB] Skipping schema statement (already exists):', err.message?.substring(0, 80));
-          } else {
-            throw err;
-          }
+    // Execute core schema (REQUIRED)
+    await executeSqlFile('schema.sql', __dirname, false);
+
+    // Execute migrations using the migration tracking system
+    console.log('[DB] Running versioned migrations...');
+    const migrationsDir = path.join(__dirname, 'migrations');
+    const appliedCount = await runMigrationsFromDirectory(migrationsDir);
+    console.log(`[DB] Applied ${appliedCount} new migrations`);
+
+    // Execute optional schema files (for legacy support)
+    const optionalFiles = [
+      'missing_tables.sql',
+      'game_system_schema.sql',
+      'challenges_schema.sql',
+    ];
+
+    for (const file of optionalFiles) {
+      try {
+        const executed = await executeSqlFile(file, __dirname, true);
+        if (executed) {
+          console.log(`[DB] Applied optional schema: ${file}`);
+        }
+      } catch (err) {
+        console.warn(`[DB] Warning with optional file ${file}:`, err.message?.substring(0, 100));
+      }
+    }
+
+    // Add missing columns to games table (idempotent)
+    console.log('[DB] Verifying games table columns...');
+    const gameColumns = [
+      { name: 'description', type: 'TEXT' },
+      { name: 'image_url', type: 'VARCHAR(500)' },
+      { name: 'thumbnail', type: 'VARCHAR(500)' },
+      { name: 'embed_url', type: 'VARCHAR(500)' },
+      { name: 'launch_url', type: 'VARCHAR(500)' },
+      { name: 'updated_at', type: 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' },
+      { name: 'is_branded_popup', type: 'BOOLEAN DEFAULT FALSE' },
+      { name: 'branding_config', type: 'JSONB DEFAULT \'{}\''},
+    ];
+
+    for (const col of gameColumns) {
+      try {
+        await query(`ALTER TABLE games ADD COLUMN IF NOT EXISTS ${col.name} ${col.type}`);
+        console.log(`[DB] Verified games.${col.name} column`);
+      } catch (err: any) {
+        if (err.code !== '42701' && err.code !== '42P07') {
+          console.log(`[DB] Note on games.${col.name}:`, err.message?.substring(0, 80));
         }
       }
     }
 
-    console.log('[DB] Schema initialized successfully');
+    // Verify api_keys table columns
+    console.log('[DB] Verifying api_keys table columns...');
+    const apiKeyColumns = [
+      { name: 'key_name', type: 'VARCHAR(255)' },
+      { name: 'key_hash', type: 'VARCHAR(255) UNIQUE' },
+      { name: 'permissions', type: 'JSONB' },
+      { name: 'rate_limit', type: 'INTEGER DEFAULT 100' },
+      { name: 'status', type: 'VARCHAR(50) DEFAULT \'active\'' },
+      { name: 'last_used_at', type: 'TIMESTAMP' },
+      { name: 'expires_at', type: 'TIMESTAMP' },
+    ];
 
-    // Read and execute migrations
-    const migrationsPath = path.join(__dirname, 'migrations.sql');
-    const migrations = fs.readFileSync(migrationsPath, 'utf-8');
-
-    // Split and execute each statement
-    const migrationStatements = migrations.split(';').filter(stmt => stmt.trim());
-
-    for (const statement of migrationStatements) {
-      if (statement.trim()) {
-        try {
-          await query(statement);
-        } catch (err: any) {
-          // Log but don't fail on migration errors - tables might already exist
-          // 42703 = column does not exist, 42701 = duplicate column, 42P07 = table exists, 42710 = type exists
-          // 23503 = foreign key constraint violation, 42P01 = relation does not exist
-          if (err.code === '42703' || err.code === '42701' || err.code === '42P07' || err.code === '42710' || err.code === '23503' || err.code === '42P01') {
-            console.log('[DB] Skipping migration statement (conflict):', err.message?.substring(0, 80));
-          } else {
-            throw err;
-          }
+    for (const col of apiKeyColumns) {
+      try {
+        await query(`ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS ${col.name} ${col.type}`);
+        console.log(`[DB] Verified api_keys.${col.name} column`);
+      } catch (err: any) {
+        if (err.code !== '42701' && err.code !== '42P07') {
+          console.log(`[DB] Note on api_keys.${col.name}:`, err.message?.substring(0, 80));
         }
       }
     }
 
-    console.log('[DB] Migrations applied successfully');
+    // Verify game_compliance table columns and constraints
+    console.log('[DB] Verifying game_compliance table...');
+    try {
+      const complianceColumns = [
+        { name: 'is_external', type: 'BOOLEAN DEFAULT TRUE' },
+        { name: 'is_sweepstake', type: 'BOOLEAN DEFAULT TRUE' },
+        { name: 'is_social_casino', type: 'BOOLEAN DEFAULT TRUE' },
+        { name: 'currency', type: 'VARCHAR(10) DEFAULT \'SC\'' },
+        { name: 'max_win_amount', type: 'DECIMAL(15, 2) DEFAULT 10.00' },
+        { name: 'min_bet', type: 'DECIMAL(15, 2) DEFAULT 0.01' },
+        { name: 'max_bet', type: 'DECIMAL(15, 2) DEFAULT 5.00' },
+      ];
 
-    // Read and execute missing tables migration
-    const missingTablesPath = path.join(__dirname, 'missing_tables.sql');
-    if (fs.existsSync(missingTablesPath)) {
-      const missingTables = fs.readFileSync(missingTablesPath, 'utf-8');
-      const missingTablesStatements = missingTables.split(';').filter(stmt => stmt.trim());
-      for (const statement of missingTablesStatements) {
-        if (statement.trim()) {
-          try {
-            await query(statement);
-          } catch (err: any) {
-            if (err.code === '42703' || err.code === '42701' || err.code === '42P07' || err.code === '42710' || err.code === '23503' || err.code === '42P01') {
-              console.log('[DB] Skipping missing table statement (conflict):', err.message?.substring(0, 80));
-            } else {
-              console.log('[DB] Error in missing table statement:', err.message);
-            }
-          }
-        }
+      for (const col of complianceColumns) {
+        await query(`ALTER TABLE game_compliance ADD COLUMN IF NOT EXISTS ${col.name} ${col.type}`);
       }
-      console.log('[DB] Missing tables migration applied');
-    }
 
-    // Read and execute game system schema
-    const gameSystemPath = path.join(__dirname, 'game_system_schema.sql');
-    if (fs.existsSync(gameSystemPath)) {
-      const gameSystemSchema = fs.readFileSync(gameSystemPath, 'utf-8');
-      const gameSystemStatements = gameSystemSchema.split(';').filter(stmt => stmt.trim());
-      for (const statement of gameSystemStatements) {
-        if (statement.trim()) {
-          try {
-            await query(statement);
-          } catch (err: any) {
-            if (err.code === '42703' || err.code === '42701' || err.code === '42P07' || err.code === '42710' || err.code === '23503' || err.code === '42P01') {
-              console.log('[DB] Skipping game system schema statement (already exists):', err.message?.substring(0, 80));
-            } else {
-              console.log('[DB] Error in game system schema:', err.message);
-            }
-          }
-        }
-      }
-      console.log('[DB] Game system schema applied');
-    }
+      console.log('[DB] Verified game_compliance table schema');
 
-    // Read and execute challenges schema
-    try {
-      const challengesPath = path.join(__dirname, 'challenges_schema.sql');
-      if (fs.existsSync(challengesPath)) {
-        const challengesSchema = fs.readFileSync(challengesPath, 'utf-8');
-        const challengesStatements = challengesSchema.split(';').filter(stmt => stmt.trim());
-        for (const statement of challengesStatements) {
-          if (statement.trim()) {
-            try {
-              await query(statement);
-            } catch (err: any) {
-              if (err.code !== '42P07' && err.code !== '42710') {
-                console.log('[DB] Challenges schema warning:', err.message?.substring(0, 80));
-              }
-            }
-          }
-        }
-        console.log('[DB] Challenges schema initialized');
-      }
-    } catch (err) {
-      console.error('[DB] Failed to initialize challenges schema:', err);
-    }
-
-    // Add description column to games table if it doesn't exist
-    try {
-      await query(`ALTER TABLE games ADD COLUMN IF NOT EXISTS description TEXT`);
-      console.log('[DB] Verified description column in games');
-    } catch (err: any) {
-      console.log('[DB] Schema check for games.description:', err.message?.substring(0, 100));
-    }
-
-    // Add image_url column to games table if it doesn't exist
-    try {
-      await query(`ALTER TABLE games ADD COLUMN IF NOT EXISTS image_url VARCHAR(500)`);
-      console.log('[DB] Verified image_url column in games');
-    } catch (err: any) {
-      console.log('[DB] Schema check for games.image_url:', err.message?.substring(0, 100));
-    }
-
-    // Add thumbnail column to games table if it doesn't exist
-    try {
-      await query(`ALTER TABLE games ADD COLUMN IF NOT EXISTS thumbnail VARCHAR(500)`);
-      console.log('[DB] Verified thumbnail column in games');
-    } catch (err: any) {
-      console.log('[DB] Schema check for games.thumbnail:', err.message?.substring(0, 100));
-    }
-
-    // Add embed_url column to games table if it doesn't exist
-    try {
-      await query(`ALTER TABLE games ADD COLUMN IF NOT EXISTS embed_url VARCHAR(500)`);
-      console.log('[DB] Verified embed_url column in games');
-    } catch (err: any) {
-      console.log('[DB] Schema check for games.embed_url:', err.message?.substring(0, 100));
-    }
-
-    // Ensure api_keys table has all required columns
-    try {
-      await query(`ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS key_name VARCHAR(255)`);
-      console.log('[DB] Verified key_name column in api_keys');
-    } catch (err: any) {
-      console.log('[DB] Schema check for api_keys.key_name:', err.message?.substring(0, 100));
-    }
-
-    try {
-      await query(`ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS key_hash VARCHAR(255) UNIQUE`);
-      console.log('[DB] Verified key_hash column in api_keys');
-    } catch (err: any) {
-      console.log('[DB] Schema check for api_keys.key_hash:', err.message?.substring(0, 100));
-    }
-
-    try {
-      await query(`ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS permissions JSONB`);
-      console.log('[DB] Verified permissions column in api_keys');
-    } catch (err: any) {
-      console.log('[DB] Schema check for api_keys.permissions:', err.message?.substring(0, 100));
-    }
-
-    try {
-      await query(`ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS rate_limit INTEGER DEFAULT 100`);
-      console.log('[DB] Verified rate_limit column in api_keys');
-    } catch (err: any) {
-      console.log('[DB] Schema check for api_keys.rate_limit:', err.message?.substring(0, 100));
-    }
-
-    try {
-      await query(`ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'active'`);
-      console.log('[DB] Verified status column in api_keys');
-    } catch (err: any) {
-      console.log('[DB] Schema check for api_keys.status:', err.message?.substring(0, 100));
-    }
-
-    try {
-      await query(`ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS last_used_at TIMESTAMP`);
-      console.log('[DB] Verified last_used_at column in api_keys');
-    } catch (err: any) {
-      console.log('[DB] Schema check for api_keys.last_used_at:', err.message?.substring(0, 100));
-    }
-
-    try {
-      await query(`ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP`);
-      console.log('[DB] Verified expires_at column in api_keys');
-    } catch (err: any) {
-      console.log('[DB] Schema check for api_keys.expires_at:', err.message?.substring(0, 100));
-    }
-
-    // Add launch_url column to games table if it doesn't exist
-    try {
-      await query(`ALTER TABLE games ADD COLUMN IF NOT EXISTS launch_url VARCHAR(500)`);
-      console.log('[DB] Verified launch_url column in games');
-    } catch (err: any) {
-      console.log('[DB] Schema check for games.launch_url:', err.message?.substring(0, 100));
-    }
-
-    // Add updated_at column to games table if it doesn't exist
-    try {
-      await query(`ALTER TABLE games ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
-      console.log('[DB] Verified updated_at column in games');
-    } catch (err: any) {
-      console.log('[DB] Schema check for games.updated_at:', err.message?.substring(0, 100));
-    }
-
-    // Add is_branded_popup column to games table if it doesn't exist
-    try {
-      await query(`ALTER TABLE games ADD COLUMN IF NOT EXISTS is_branded_popup BOOLEAN DEFAULT FALSE`);
-      console.log('[DB] Verified is_branded_popup column in games');
-    } catch (err: any) {
-      console.log('[DB] Schema check for games.is_branded_popup:', err.message?.substring(0, 100));
-    }
-
-    // Add branding_config column to games table if it doesn't exist
-    try {
-      await query(`ALTER TABLE games ADD COLUMN IF NOT EXISTS branding_config JSONB DEFAULT '{}'`);
-      console.log('[DB] Verified branding_config column in games');
-    } catch (err: any) {
-      console.log('[DB] Schema check for games.branding_config:', err.message?.substring(0, 100));
-    }
-
-    // Ensure game_compliance has required columns for crawler
-    try {
-      await query(`ALTER TABLE game_compliance ADD COLUMN IF NOT EXISTS is_external BOOLEAN DEFAULT TRUE`);
-      await query(`ALTER TABLE game_compliance ADD COLUMN IF NOT EXISTS is_sweepstake BOOLEAN DEFAULT TRUE`);
-      await query(`ALTER TABLE game_compliance ADD COLUMN IF NOT EXISTS is_social_casino BOOLEAN DEFAULT TRUE`);
-      await query(`ALTER TABLE game_compliance ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT 'SC'`);
-      await query(`ALTER TABLE game_compliance ADD COLUMN IF NOT EXISTS max_win_amount DECIMAL(15, 2) DEFAULT 10.00`);
-      await query(`ALTER TABLE game_compliance ADD COLUMN IF NOT EXISTS min_bet DECIMAL(15, 2) DEFAULT 0.01`);
-      await query(`ALTER TABLE game_compliance ADD COLUMN IF NOT EXISTS max_bet DECIMAL(15, 2) DEFAULT 5.00`);
-
-      console.log('[DB] Verified game_compliance table schema for crawler');
-
-      // Enforce 10 SC max win for all games (User request: Social Casino compliance)
+      // Enforce 10 SC max win for social casino compliance
       await query(`UPDATE game_compliance SET max_win_amount = 10.00 WHERE max_win_amount > 10.00`);
       await query(`INSERT INTO game_compliance (game_id, max_win_amount, is_external, is_sweepstake, is_social_casino, currency)
                    SELECT id, 10.00, true, true, true, 'SC' FROM games
@@ -258,32 +199,36 @@ export const initializeDatabase = async () => {
                    ON CONFLICT DO NOTHING`);
       console.log('[DB] Enforced 10 SC max win compliance for all games');
     } catch (err: any) {
-      console.log('[DB] game_compliance schema update:', err.message?.substring(0, 100));
+      console.log('[DB] game_compliance schema note:', err.message?.substring(0, 100));
     }
 
-
-    // Add bonus_sc column to store_packs table if it doesn't exist
+    // Verify store_packs columns
+    console.log('[DB] Verifying store_packs table...');
     try {
       await query(`ALTER TABLE store_packs ADD COLUMN IF NOT EXISTS bonus_sc DECIMAL(15, 2) DEFAULT 0`);
-      console.log('[DB] Verified bonus_sc column in store_packs');
+      console.log('[DB] Verified store_packs.bonus_sc column');
     } catch (err: any) {
-      console.log('[DB] Schema check for store_packs.bonus_sc:', err.message?.substring(0, 100));
+      console.log('[DB] Note on store_packs.bonus_sc:', err.message?.substring(0, 80));
     }
 
-    // Note: store_packs table uses 'display_order' column for sorting
-    // No column rename needed - column names are consistent
-
-    // Ensure security_alerts has player_id and other expected columns
+    // Verify security_alerts table
+    console.log('[DB] Verifying security_alerts table...');
     try {
-      await query(`ALTER TABLE security_alerts ADD COLUMN IF NOT EXISTS player_id INTEGER REFERENCES players(id) ON DELETE CASCADE`);
-      await query(`ALTER TABLE security_alerts ADD COLUMN IF NOT EXISTS severity VARCHAR(50) DEFAULT 'info'`);
-      await query(`ALTER TABLE security_alerts ADD COLUMN IF NOT EXISTS title VARCHAR(255)`);
-      await query(`ALTER TABLE security_alerts ADD COLUMN IF NOT EXISTS message TEXT`);
-      await query(`ALTER TABLE security_alerts ADD COLUMN IF NOT EXISTS timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
-      await query(`ALTER TABLE security_alerts ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+      const alertColumns = [
+        { name: 'player_id', type: 'INTEGER REFERENCES players(id) ON DELETE CASCADE' },
+        { name: 'severity', type: 'VARCHAR(50) DEFAULT \'info\'' },
+        { name: 'title', type: 'VARCHAR(255)' },
+        { name: 'message', type: 'TEXT' },
+        { name: 'timestamp', type: 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' },
+        { name: 'created_at', type: 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' },
+      ];
+
+      for (const col of alertColumns) {
+        await query(`ALTER TABLE security_alerts ADD COLUMN IF NOT EXISTS ${col.name} ${col.type}`);
+      }
       console.log('[DB] Verified security_alerts table schema');
     } catch (err: any) {
-      console.log('[DB] security_alerts schema update:', err.message?.substring(0, 100));
+      console.log('[DB] security_alerts schema note:', err.message?.substring(0, 100));
     }
 
     // Seed data if tables are empty
