@@ -1312,8 +1312,8 @@ export const getAIEmployeeById = async (id: string) => {
 export const updateAIAgentStatus = async (agentId: string, status: string, currentTask?: string) => {
   return query(
     `INSERT INTO ai_agent_status (agent_id, agent_name, status, current_task)
-     SELECT $1, name, $2, $3 FROM ai_employees WHERE id = $1
-     ON CONFLICT (agent_id) DO UPDATE SET status = $2, current_task = $3, updated_at = NOW()
+     SELECT $1::VARCHAR(100), name, $2::VARCHAR(50), $3::VARCHAR(255) FROM ai_employees WHERE id = $1::VARCHAR(50)
+     ON CONFLICT (agent_id) DO UPDATE SET status = $2::VARCHAR(50), current_task = $3::VARCHAR(255), updated_at = NOW()
      RETURNING *`,
     [agentId, status, currentTask || null]
   );
