@@ -391,7 +391,7 @@ class EmailService {
     });
   }
 
-  async sendAdminNotification(adminEmail: string, notification: any): Promise<boolean> {
+  async sendAdminNotification(adminEmail: string, notification: { priority: string; subject: string; message: string; ai_employee_id: string; }): Promise<boolean> {
     const priorityColors: any = {
       critical: '#d32f2f',
       high: '#f57c00',
