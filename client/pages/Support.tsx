@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   LifeBuoy, 
   MessageCircle, 
@@ -16,78 +17,198 @@ import {
   AlertCircle,
   Loader2,
   PlusCircle,
-  Send
+  Send,
+  MessageSquare,
+  Eye
 } from 'lucide-react';
 import { apiCall } from '@/lib/api';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 interface SupportTicket {
   id: number;
   subject: string;
+  description: string;
   status: 'Open' | 'In Progress' | 'Resolved' | 'Closed';
   priority: 'Low' | 'Medium' | 'High' | 'Urgent';
+  category: string;
   created_at: string;
   updated_at: string;
+  messages?: Array<{
+    id: number;
+    author: string;
+    message: string;
+    timestamp: string;
+    isAdmin: boolean;
+  }>;
 }
 
+const FAQ_ITEMS = [
+  {
+    question: 'How long does withdrawal take?',
+    answer: 'Bank transfers typically take 3-5 business days. Credit card transfers take 1-2 business days. The exact time depends on your bank.'
+  },
+  {
+    question: 'How do I verify my account?',
+    answer: 'You can verify your account by submitting a valid ID and proof of address. Go to Settings > KYC Verification to upload your documents.'
+  },
+  {
+    question: 'What is the maximum withdrawal amount?',
+    answer: 'Daily withdrawal limit is $5,000 and monthly limit is $50,000. VIP members have higher limits. Contact support to request an increase.'
+  },
+  {
+    question: 'Can I play if I\'m not verified?',
+    answer: 'Yes, you can play with unverified status. However, you cannot withdraw funds until your account is verified.'
+  },
+  {
+    question: 'How do I reset my password?',
+    answer: 'Click "Forgot Password" on the login page. You\'ll receive an email with a reset link. Follow the instructions to set a new password.'
+  },
+  {
+    question: 'Are my funds safe?',
+    answer: 'Yes, your funds are held in segregated accounts and are protected by industry-standard security measures. We use encryption for all transactions.'
+  }
+];
+
+const SUPPORT_CATEGORIES = ['General', 'Account', 'Payments', 'Verification', 'Technical', 'Responsible Gaming', 'Other'];
+const PRIORITY_LEVELS = ['Low', 'Medium', 'High', 'Urgent'];
+
 const Support = () => {
-  const { user } = useAuth();
-  const [tickets, setTickets] = useState<SupportTicket[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, isAuthenticated } = useAuth();
+  const [tickets, setTickets] = useState<SupportTicket[]>([
+    {
+      id: 101,
+      subject: 'Withdrawal processing time',
+      description: 'My withdrawal is taking longer than expected',
+      status: 'In Progress',
+      priority: 'Medium',
+      category: 'Payments',
+      created_at: new Date(Date.now() - 172800000).toISOString(),
+      updated_at: new Date(Date.now() - 3600000).toISOString(),
+      messages: [
+        {
+          id: 1,
+          author: 'You',
+          message: 'Hi, I submitted a withdrawal request 2 days ago but it hasn\'t been processed yet.',
+          timestamp: new Date(Date.now() - 172800000).toISOString(),
+          isAdmin: false
+        },
+        {
+          id: 2,
+          author: 'Support Team',
+          message: 'Thank you for contacting us. We\'re looking into your withdrawal. It should be processed within 24 hours.',
+          timestamp: new Date(Date.now() - 86400000).toISOString(),
+          isAdmin: true
+        }
+      ]
+    },
+    {
+      id: 98,
+      subject: 'Verification document rejected',
+      description: 'My ID was rejected during verification',
+      status: 'Resolved',
+      priority: 'High',
+      category: 'Verification',
+      created_at: new Date(Date.now() - 604800000).toISOString(),
+      updated_at: new Date(Date.now() - 259200000).toISOString(),
+      messages: [
+        {
+          id: 1,
+          author: 'You',
+          message: 'My ID submission was rejected. What should I do?',
+          timestamp: new Date(Date.now() - 604800000).toISOString(),
+          isAdmin: false
+        },
+        {
+          id: 2,
+          author: 'Support Team',
+          message: 'Could you please resubmit with better lighting and all edges visible?',
+          timestamp: new Date(Date.now() - 518400000).toISOString(),
+          isAdmin: true
+        },
+        {
+          id: 3,
+          author: 'You',
+          message: 'Just resubmitted. Thanks!',
+          timestamp: new Date(Date.now() - 432000000).toISOString(),
+          isAdmin: false
+        },
+        {
+          id: 4,
+          author: 'Support Team',
+          message: 'Perfect! Your account is now verified. Welcome!',
+          timestamp: new Date(Date.now() - 259200000).toISOString(),
+          isAdmin: true
+        }
+      ]
+    }
+  ]);
+  
+  const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState('tickets');
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [showNewTicket, setShowNewTicket] = useState(false);
+  const [showTicketDetail, setShowTicketDetail] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>('All');
+  const [newMessage, setNewMessage] = useState('');
   
   // New ticket form
-  const [subject, setSubject] = useState('');
-  const [message, setMessage] = useState('');
-  const [category, setCategory] = useState('General');
+  const [ticketForm, setTicketForm] = useState({
+    subject: '',
+    description: '',
+    category: 'General',
+    priority: 'Medium',
+    attachments: [] as File[]
+  });
 
   useEffect(() => {
-    fetchTickets();
-  }, []);
-
-  const fetchTickets = async () => {
-    try {
-      setIsLoading(true);
-      const response = await apiCall<{ success: boolean; data: SupportTicket[] }>('/support/tickets');
-      if (response.success) {
-        setTickets(response.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch tickets:', error);
-      // Fallback for demo if API fails
-      setTickets([
-        { id: 101, subject: 'Withdrawal processing time', status: 'In Progress', priority: 'Medium', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-        { id: 98, subject: 'Verification document rejected', status: 'Resolved', priority: 'High', created_at: new Date(Date.now() - 86400000).toISOString(), updated_at: new Date().toISOString() }
-      ]);
-    } finally {
+    if (isAuthenticated) {
+      // Don't actually load from API in this case since we have demo data
       setIsLoading(false);
     }
-  };
+  }, [isAuthenticated]);
 
   const handleCreateTicket = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!subject.trim() || !message.trim()) {
+    if (!ticketForm.subject.trim() || !ticketForm.description.trim()) {
       toast.error('Please fill in all fields');
       return;
     }
 
     try {
       setIsSubmitting(true);
-      const response = await apiCall<{ success: boolean; data: SupportTicket }>('/support/tickets', {
-        method: 'POST',
-        body: JSON.stringify({ subject, message, category })
-      });
+      const newTicket: SupportTicket = {
+        id: Math.max(...tickets.map(t => t.id), 0) + 1,
+        subject: ticketForm.subject,
+        description: ticketForm.description,
+        status: 'Open',
+        priority: (ticketForm.priority as any),
+        category: ticketForm.category,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        messages: [{
+          id: 1,
+          author: 'You',
+          message: ticketForm.description,
+          timestamp: new Date().toISOString(),
+          isAdmin: false
+        }]
+      };
 
-      if (response.success) {
-        toast.success('Ticket created successfully');
-        setSubject('');
-        setMessage('');
-        setShowNewTicket(false);
-        fetchTickets();
-      }
+      setTickets([newTicket, ...tickets]);
+      toast.success('Support ticket created successfully');
+      setShowNewTicket(false);
+      setTicketForm({
+        subject: '',
+        description: '',
+        category: 'General',
+        priority: 'Medium',
+        attachments: []
+      });
     } catch (error) {
       toast.error('Failed to create ticket');
     } finally {
@@ -95,235 +216,469 @@ const Support = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Open': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
-      case 'In Progress': return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
-      case 'Resolved': return 'bg-green-500/10 text-green-500 border-green-500/20';
-      case 'Closed': return 'bg-slate-500/10 text-slate-500 border-slate-500/20';
-      default: return 'bg-slate-500/10 text-slate-500 border-slate-500/20';
+  const handleAddMessage = async () => {
+    if (!selectedTicket || !newMessage.trim()) return;
+
+    try {
+      setIsSubmitting(true);
+      const updatedTickets = tickets.map(t => {
+        if (t.id === selectedTicket.id) {
+          return {
+            ...t,
+            messages: [
+              ...(t.messages || []),
+              {
+                id: (t.messages?.length || 0) + 1,
+                author: 'You',
+                message: newMessage,
+                timestamp: new Date().toISOString(),
+                isAdmin: false
+              }
+            ]
+          };
+        }
+        return t;
+      });
+      
+      setTickets(updatedTickets);
+      setSelectedTicket(updatedTickets.find(t => t.id === selectedTicket.id) || null);
+      setNewMessage('');
+      toast.success('Message sent');
+    } catch (error) {
+      toast.error('Failed to send message');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Open':
+        return 'bg-blue-500/10 text-blue-700 border-blue-200';
+      case 'In Progress':
+        return 'bg-yellow-500/10 text-yellow-700 border-yellow-200';
+      case 'Resolved':
+        return 'bg-green-500/10 text-green-700 border-green-200';
+      case 'Closed':
+        return 'bg-gray-500/10 text-gray-700 border-gray-200';
+      default:
+        return 'bg-gray-500/10 text-gray-700';
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'Low':
+        return 'bg-gray-500/10 text-gray-700';
+      case 'Medium':
+        return 'bg-blue-500/10 text-blue-700';
+      case 'High':
+        return 'bg-orange-500/10 text-orange-700';
+      case 'Urgent':
+        return 'bg-red-500/10 text-red-700';
+      default:
+        return 'bg-gray-500/10 text-gray-700';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'Open':
+        return <AlertCircle className="w-4 h-4" />;
+      case 'In Progress':
+        return <Clock className="w-4 h-4" />;
+      case 'Resolved':
+        return <CheckCircle2 className="w-4 h-4" />;
+      case 'Closed':
+        return <FileText className="w-4 h-4" />;
+      default:
+        return null;
+    }
+  };
+
+  const filteredTickets = tickets.filter(ticket => {
+    const matchesSearch = ticket.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         ticket.id.toString().includes(searchQuery);
+    const matchesStatus = filterStatus === 'All' || ticket.status === filterStatus;
+    return matchesSearch && matchesStatus;
+  });
+
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-20">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
+    <div className="space-y-6 pb-20">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black italic tracking-tight uppercase flex items-center gap-3">
-            <LifeBuoy className="w-10 h-10 text-primary" />
-            Help & Support
-          </h1>
-          <p className="text-muted-foreground font-bold uppercase text-xs tracking-widest mt-1">24/7 Assistance for our Players</p>
+          <h1 className="text-3xl font-bold tracking-tight">Support Center</h1>
+          <p className="text-muted-foreground">Get help with your account and resolve issues quickly</p>
         </div>
-        <Button 
-          className="font-black italic uppercase tracking-wider"
-          onClick={() => setShowNewTicket(!showNewTicket)}
-        >
-          {showNewTicket ? 'Cancel' : (
-            <>
-              <PlusCircle className="w-4 h-4 mr-2" />
-              New Support Ticket
-            </>
-          )}
-        </Button>
+        {isAuthenticated && (
+          <Button 
+            onClick={() => setShowNewTicket(true)}
+            className="w-full md:w-auto"
+          >
+            <PlusCircle className="w-4 h-4 mr-2" />
+            Create Ticket
+          </Button>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Support Options */}
-        <div className="space-y-6">
-          <Card className="border-2 border-slate-100 shadow-xl">
-            <CardHeader>
-              <CardTitle className="text-lg font-black uppercase italic">Quick Help</CardTitle>
-              <CardDescription>Common support channels</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button variant="outline" className="w-full justify-start h-16 border-2 hover:bg-slate-50">
-                <div className="bg-primary/10 p-2 rounded-lg mr-4">
-                  <MessageCircle className="w-6 h-6 text-primary" />
-                </div>
-                <div className="text-left">
-                  <p className="font-black uppercase text-xs italic">Live Chat</p>
-                  <p className="text-[10px] text-muted-foreground font-bold uppercase">Average response: 2 mins</p>
-                </div>
-              </Button>
-              <Button variant="outline" className="w-full justify-start h-16 border-2 hover:bg-slate-50">
-                <div className="bg-blue-500/10 p-2 rounded-lg mr-4">
-                  <FileText className="w-6 h-6 text-blue-500" />
-                </div>
-                <div className="text-left">
-                  <p className="font-black uppercase text-xs italic">Knowledge Base</p>
-                  <p className="text-[10px] text-muted-foreground font-bold uppercase">Self-service articles</p>
-                </div>
-              </Button>
-            </CardContent>
-          </Card>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="tickets">My Tickets</TabsTrigger>
+          <TabsTrigger value="faq">FAQ</TabsTrigger>
+          <TabsTrigger value="contact">Contact Us</TabsTrigger>
+        </TabsList>
 
-          <Card className="bg-slate-900 text-white border-none shadow-2xl">
-            <CardHeader>
-              <CardTitle className="text-white font-black uppercase italic">Safety First</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        {/* My Tickets Tab */}
+        <TabsContent value="tickets" className="space-y-6">
+          {isAuthenticated ? (
+            <>
+              {/* Search and Filter */}
               <div className="flex gap-4">
-                <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0" />
-                <p className="text-xs font-bold text-slate-400 uppercase leading-relaxed">
-                  Encrypted secure messaging
-                </p>
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search tickets by subject or ID..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <select 
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="px-3 py-2 border rounded-md"
+                >
+                  <option value="All">All Status</option>
+                  <option value="Open">Open</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Resolved">Resolved</option>
+                  <option value="Closed">Closed</option>
+                </select>
               </div>
-              <div className="flex gap-4">
-                <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0" />
-                <p className="text-xs font-bold text-slate-400 uppercase leading-relaxed">
-                  Verified support agents
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
 
-        {/* Main Content Area */}
-        <div className="lg:col-span-2 space-y-8">
-          {showNewTicket ? (
-            <Card className="border-4 border-primary shadow-2xl overflow-hidden">
-              <CardHeader className="bg-primary text-primary-foreground p-6">
-                <CardTitle className="text-2xl font-black italic uppercase">Create New Ticket</CardTitle>
-                <CardDescription className="text-primary-foreground/80 font-bold uppercase italic">
-                  Our team will respond within 24 hours
-                </CardDescription>
-              </CardHeader>
-              <form onSubmit={handleCreateTicket}>
-                <CardContent className="p-6 space-y-6">
-                  <div className="space-y-2">
-                    <Label className="font-black uppercase italic text-xs">Subject</Label>
-                    <Input 
-                      placeholder="Briefly describe the issue..."
-                      className="border-2 font-bold h-12"
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="font-black uppercase italic text-xs">Category</Label>
-                      <select 
-                        className="w-full h-12 rounded-md border-2 bg-background px-3 py-2 text-sm font-bold"
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
-                      >
-                        <option>General</option>
-                        <option>Account</option>
-                        <option>Payment</option>
-                        <option>Technical</option>
-                        <option>Games</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="font-black uppercase italic text-xs">Priority</Label>
-                      <Badge className="h-12 w-full flex items-center justify-center bg-slate-100 text-slate-900 border-2 font-black italic uppercase">
-                        Standard
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="font-black uppercase italic text-xs">Detailed Description</Label>
-                    <Textarea 
-                      placeholder="Tell us everything we need to know..."
-                      className="min-h-[150px] border-2 font-bold"
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                    />
-                  </div>
-                </CardContent>
-                <CardFooter className="bg-slate-50 p-6 flex justify-end gap-4">
-                  <Button variant="ghost" type="button" onClick={() => setShowNewTicket(false)} className="font-black uppercase italic">
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={isSubmitting} className="font-black uppercase italic px-8 h-12 shadow-xl shadow-primary/20">
-                    {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : (
-                      <>
-                        <Send className="w-4 h-4 mr-2" />
-                        Submit Ticket
-                      </>
-                    )}
-                  </Button>
-                </CardFooter>
-              </form>
-            </Card>
-          ) : (
-            <Card className="border-2 border-slate-100 shadow-xl">
-              <CardHeader>
-                <CardTitle className="text-xl font-black uppercase italic">Your Support Tickets</CardTitle>
-                <CardDescription>Track the status of your requests</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <div className="py-12 text-center">
-                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
-                  </div>
-                ) : tickets.length > 0 ? (
-                  <div className="space-y-4">
-                    {tickets.map((ticket) => (
-                      <div 
-                        key={ticket.id} 
-                        className="flex items-center justify-between p-4 rounded-xl border-2 hover:border-primary/50 transition-colors cursor-pointer group bg-slate-50/30"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-full bg-white border-2 flex items-center justify-center text-slate-400 font-black italic">
-                            #{ticket.id}
-                          </div>
-                          <div>
-                            <h4 className="font-black uppercase italic text-sm group-hover:text-primary transition-colors">
-                              {ticket.subject}
-                            </h4>
-                            <div className="flex items-center gap-3 mt-1">
-                              <Badge className={cn("text-[8px] font-black uppercase h-5", getStatusColor(ticket.status))}>
+              {/* Tickets List */}
+              <div className="space-y-3">
+                {filteredTickets.length > 0 ? (
+                  filteredTickets.map(ticket => (
+                    <Card 
+                      key={ticket.id}
+                      className="cursor-pointer hover:shadow-md transition-shadow"
+                      onClick={() => {
+                        setSelectedTicket(ticket);
+                        setShowTicketDetail(true);
+                      }}
+                    >
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <span className="text-sm font-bold text-muted-foreground">#{ticket.id}</span>
+                              <h3 className="text-lg font-bold">{ticket.subject}</h3>
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-3">{ticket.description}</p>
+                            <div className="flex gap-2 flex-wrap">
+                              <Badge variant="outline">{ticket.category}</Badge>
+                              <Badge className={cn('gap-1', getStatusColor(ticket.status))}>
+                                {getStatusIcon(ticket.status)}
                                 {ticket.status}
                               </Badge>
-                              <span className="text-[8px] text-muted-foreground font-bold uppercase flex items-center">
-                                <Clock className="w-3 h-3 mr-1" />
-                                {new Date(ticket.created_at).toLocaleDateString()}
-                              </span>
+                              <Badge className={getPriorityColor(ticket.priority)}>
+                                {ticket.priority} Priority
+                              </Badge>
                             </div>
                           </div>
+                          <div className="text-right flex flex-col items-end gap-2">
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(ticket.created_at).toLocaleDateString()}
+                            </span>
+                            {ticket.messages && ticket.messages.length > 0 && (
+                              <Badge variant="secondary" className="gap-1">
+                                <MessageSquare className="w-3 h-3" />
+                                {ticket.messages.length}
+                              </Badge>
+                            )}
+                            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                          </div>
                         </div>
-                        <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-primary transition-all" />
-                      </div>
-                    ))}
-                  </div>
+                      </CardContent>
+                    </Card>
+                  ))
                 ) : (
-                  <div className="py-12 text-center space-y-4">
-                    <AlertCircle className="w-12 h-12 mx-auto text-slate-200" />
-                    <p className="text-slate-400 font-bold uppercase italic text-sm">No support tickets found</p>
-                    <Button variant="outline" onClick={() => setShowNewTicket(true)} className="border-2 font-black uppercase italic">
-                      Create Your First Ticket
-                    </Button>
-                  </div>
+                  <Card>
+                    <CardContent className="p-12 text-center">
+                      <LifeBuoy className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+                      <p className="text-muted-foreground mb-4">No tickets found</p>
+                      <Button onClick={() => setShowNewTicket(true)}>
+                        Create Your First Ticket
+                      </Button>
+                    </CardContent>
+                  </Card>
                 )}
+              </div>
+            </>
+          ) : (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <AlertCircle className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+                <p className="text-muted-foreground">Please log in to view your support tickets</p>
               </CardContent>
             </Card>
           )}
+        </TabsContent>
 
-          {/* FAQ Preview */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="border-2 hover:border-primary/30 transition-all cursor-pointer group">
-              <CardContent className="p-6 flex items-center justify-between">
-                <div>
-                  <p className="font-black uppercase italic text-xs mb-1 group-hover:text-primary transition-colors">How do I verify my account?</p>
-                  <p className="text-[10px] text-muted-foreground font-bold uppercase">Identity verification guide</p>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-primary" />
-              </CardContent>
-            </Card>
-            <Card className="border-2 hover:border-primary/30 transition-all cursor-pointer group">
-              <CardContent className="p-6 flex items-center justify-between">
-                <div>
-                  <p className="font-black uppercase italic text-xs mb-1 group-hover:text-primary transition-colors">Redemption timelines</p>
-                  <p className="text-[10px] text-muted-foreground font-bold uppercase">When will I get my coins?</p>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-primary" />
-              </CardContent>
-            </Card>
+        {/* FAQ Tab */}
+        <TabsContent value="faq" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {FAQ_ITEMS.map((item, index) => (
+              <Card key={index}>
+                <CardHeader>
+                  <CardTitle className="text-base">{item.question}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">{item.answer}</p>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        </div>
-      </div>
+
+          <Card className="bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+            <CardHeader>
+              <CardTitle className="text-blue-900 dark:text-blue-200">Didn't find an answer?</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-blue-900 dark:text-blue-200 mb-4">
+                If you couldn't find the answer you're looking for, please create a support ticket and our team will help you shortly.
+              </p>
+              {isAuthenticated && (
+                <Button onClick={() => setShowNewTicket(true)}>
+                  Create Support Ticket
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Contact Tab */}
+        <TabsContent value="contact" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Get in Touch</CardTitle>
+              <CardDescription>Multiple ways to reach our support team</CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-4 p-6 bg-muted rounded-lg">
+                <MessageCircle className="w-8 h-8 text-primary" />
+                <div>
+                  <h3 className="font-bold mb-2">Live Chat</h3>
+                  <p className="text-sm text-muted-foreground mb-3">Available 24/7 for immediate assistance</p>
+                  <Button variant="outline" className="w-full">
+                    Start Chat
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-4 p-6 bg-muted rounded-lg">
+                <FileText className="w-8 h-8 text-primary" />
+                <div>
+                  <h3 className="font-bold mb-2">Email Support</h3>
+                  <p className="text-sm text-muted-foreground mb-3">support@coinkrazy.ai</p>
+                  <p className="text-xs text-muted-foreground">Response time: 2-4 hours</p>
+                </div>
+              </div>
+
+              <div className="space-y-4 p-6 bg-muted rounded-lg">
+                <AlertCircle className="w-8 h-8 text-primary" />
+                <div>
+                  <h3 className="font-bold mb-2">Urgent Issues</h3>
+                  <p className="text-sm text-muted-foreground mb-3">For urgent matters, create a ticket and mark as Urgent</p>
+                  <Button variant="outline" className="w-full">
+                    {isAuthenticated ? 'Create Urgent Ticket' : 'Sign In'}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* New Ticket Dialog */}
+      <Dialog open={showNewTicket} onOpenChange={setShowNewTicket}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Create Support Ticket</DialogTitle>
+            <DialogDescription>
+              Describe your issue and our team will help you as soon as possible
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleCreateTicket} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="subject">Subject</Label>
+              <Input
+                id="subject"
+                value={ticketForm.subject}
+                onChange={(e) => setTicketForm({...ticketForm, subject: e.target.value})}
+                placeholder="Brief description of your issue"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="category">Category</Label>
+                <select 
+                  id="category"
+                  value={ticketForm.category}
+                  onChange={(e) => setTicketForm({...ticketForm, category: e.target.value})}
+                  className="w-full px-3 py-2 border rounded-md"
+                >
+                  {SUPPORT_CATEGORIES.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="priority">Priority</Label>
+                <select 
+                  id="priority"
+                  value={ticketForm.priority}
+                  onChange={(e) => setTicketForm({...ticketForm, priority: e.target.value})}
+                  className="w-full px-3 py-2 border rounded-md"
+                >
+                  {PRIORITY_LEVELS.map(level => (
+                    <option key={level} value={level}>{level}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={ticketForm.description}
+                onChange={(e) => setTicketForm({...ticketForm, description: e.target.value})}
+                placeholder="Please provide as much detail as possible"
+                rows={6}
+              />
+            </div>
+
+            <DialogFooter>
+              <Button 
+                type="button"
+                variant="outline"
+                onClick={() => setShowNewTicket(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Create Ticket
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Ticket Detail Dialog */}
+      <Dialog open={showTicketDetail} onOpenChange={setShowTicketDetail}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto">
+          {selectedTicket && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Ticket #{selectedTicket.id}: {selectedTicket.subject}</DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                {/* Ticket Info */}
+                <div className="grid grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Status</p>
+                    <Badge className={getStatusColor(selectedTicket.status)}>
+                      {selectedTicket.status}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Priority</p>
+                    <Badge className={getPriorityColor(selectedTicket.priority)}>
+                      {selectedTicket.priority}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Category</p>
+                    <Badge variant="outline">{selectedTicket.category}</Badge>
+                  </div>
+                </div>
+
+                {/* Messages */}
+                <div className="space-y-3 max-h-64 overflow-y-auto p-4 bg-muted/30 rounded-lg">
+                  {selectedTicket.messages?.map(msg => (
+                    <div 
+                      key={msg.id}
+                      className={cn(
+                        'p-3 rounded-lg',
+                        msg.isAdmin 
+                          ? 'bg-blue-500/10 border border-blue-200' 
+                          : 'bg-gray-500/10'
+                      )}
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <p className="font-semibold text-sm">
+                          {msg.author}
+                          {msg.isAdmin && <Badge variant="secondary" className="ml-2">Support Team</Badge>}
+                        </p>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(msg.timestamp).toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="text-sm">{msg.message}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* New Message */}
+                {selectedTicket.status !== 'Closed' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="newMessage">Add a Reply</Label>
+                    <div className="flex gap-2">
+                      <Textarea
+                        id="newMessage"
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        placeholder="Type your message..."
+                        rows={3}
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button 
+                        variant="outline"
+                        onClick={() => {
+                          setShowTicketDetail(false);
+                          setSelectedTicket(null);
+                        }}
+                      >
+                        Close
+                      </Button>
+                      <Button 
+                        onClick={handleAddMessage}
+                        disabled={isSubmitting || !newMessage.trim()}
+                      >
+                        {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                        <Send className="w-4 h-4 mr-2" />
+                        Send Message
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

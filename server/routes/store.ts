@@ -411,7 +411,81 @@ export const handleStripeWebhook: RequestHandler = async (req, res) => {
 export const handleSquareWebhook: RequestHandler = async (req, res) => {
   try {
     console.log('[Store] Square webhook received:', req.body);
-    // TODO: Implement Square signature verification and processing
+
+    // Verify Square webhook signature
+    const signature = req.headers['x-square-hmac-sha256'] as string;
+    const squareWebhookUrl = process.env.SQUARE_WEBHOOK_URL || `${req.protocol}://${req.get('host')}/api/store/webhook/square`;
+
+    if (!signature) {
+      console.warn('[Store] Square webhook: Missing x-square-hmac-sha256 header');
+      return res.status(400).json({
+        success: false,
+        error: 'Missing webhook signature'
+      });
+    }
+
+    const squareSigningKey = process.env.SQUARE_WEBHOOK_SIGNATURE_KEY;
+    if (!squareSigningKey) {
+      console.warn('[Store] Square webhook: Missing SQUARE_WEBHOOK_SIGNATURE_KEY environment variable');
+      // In development, accept anyway
+      if (process.env.NODE_ENV !== 'development') {
+        return res.status(400).json({
+          success: false,
+          error: 'Webhook signature verification not configured'
+        });
+      }
+    }
+
+    // Verify signature if key is configured
+    if (squareSigningKey) {
+      const crypto = require('crypto');
+      const webhookBody = JSON.stringify(req.body);
+      const payload = squareWebhookUrl + webhookBody;
+      const hash = crypto
+        .createHmac('sha256', squareSigningKey)
+        .update(payload)
+        .digest('base64');
+
+      if (hash !== signature) {
+        console.error('[Store] Square webhook signature verification failed');
+        return res.status(403).json({
+          success: false,
+          error: 'Invalid webhook signature'
+        });
+      }
+    }
+
+    const event = req.body;
+    console.log('[Store] Square webhook event type:', event.type);
+
+    // Handle different Square event types
+    switch (event.type) {
+      case 'payment.created':
+      case 'payment.updated':
+        {
+          const payment = event.data?.object?.payment;
+          if (payment?.status === 'COMPLETED') {
+            // Process successful payment
+            const orderId = payment.metadata?.order_id || payment.id;
+            console.log('[Store] Square payment completed:', orderId);
+            // TODO: Update player balance based on payment metadata
+          }
+          break;
+        }
+
+      case 'refund.created':
+        {
+          const refund = event.data?.object?.refund;
+          console.log('[Store] Square refund processed:', refund?.id);
+          // TODO: Handle refund processing
+          break;
+        }
+
+      default:
+        console.log('[Store] Unhandled Square event type:', event.type);
+    }
+
+    // Return 200 OK to acknowledge receipt
     res.status(200).json({ success: true, received: true });
   } catch (error) {
     console.error('[Store] Square webhook error:', error);
