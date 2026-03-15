@@ -5,20 +5,28 @@ import { adminV2 } from '@/lib/api';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { Suspense, lazy } from 'react';
 
-// Import admin sub-components
-import AdminDashboard from '@/components/admin/AdminDashboard';
-import AdminSalesDashboard from '@/components/admin/AdminSalesDashboard';
-import AdminNotifications from '@/components/admin/AdminNotifications';
-import AdminPlayers from '@/components/admin/AdminPlayers';
-import AdminKYC from '@/components/admin/AdminKYC';
-import AdminWallet from '@/components/admin/AdminWallet';
-import AdminFinancial from '@/components/admin/AdminFinancial';
-import AdminGamesSports from '@/components/admin/AdminGamesSports';
-import AdminOperations from '@/components/admin/AdminOperations';
-import AdminAdvanced from '@/components/admin/AdminAdvanced';
-import AdminStore from '@/components/admin/AdminStore';
-import AIGameEditor from '@/pages/admin/AIGameEditor';
+// Lazy load admin sub-components to reduce main bundle
+const AdminDashboard = lazy(() => import('@/components/admin/AdminDashboard'));
+const AdminSalesDashboard = lazy(() => import('@/components/admin/AdminSalesDashboard'));
+const AdminNotifications = lazy(() => import('@/components/admin/AdminNotifications'));
+const AdminPlayers = lazy(() => import('@/components/admin/AdminPlayers'));
+const AdminKYC = lazy(() => import('@/components/admin/AdminKYC'));
+const AdminWallet = lazy(() => import('@/components/admin/AdminWallet'));
+const AdminFinancial = lazy(() => import('@/components/admin/AdminFinancial'));
+const AdminGamesSports = lazy(() => import('@/components/admin/AdminGamesSports'));
+const AdminOperations = lazy(() => import('@/components/admin/AdminOperations'));
+const AdminAdvanced = lazy(() => import('@/components/admin/AdminAdvanced'));
+const AdminStore = lazy(() => import('@/components/admin/AdminStore'));
+const AIGameEditor = lazy(() => import('@/pages/admin/AIGameEditor'));
+
+// Loading fallback component
+const ComponentLoader = () => (
+  <div className="flex items-center justify-center py-12">
+    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+  </div>
+);
 
 const Admin = () => {
   const { isAdmin, isLoading: authLoading } = useAuth();
@@ -72,62 +80,86 @@ const Admin = () => {
 
         {/* Dashboard */}
         <TabsContent value="dashboard">
-          <AdminDashboard />
+          <Suspense fallback={<ComponentLoader />}>
+            <AdminDashboard />
+          </Suspense>
         </TabsContent>
 
         {/* Sales Analytics */}
         <TabsContent value="sales">
-          <AdminSalesDashboard />
+          <Suspense fallback={<ComponentLoader />}>
+            <AdminSalesDashboard />
+          </Suspense>
         </TabsContent>
 
         {/* Notifications */}
         <TabsContent value="notifications">
-          <AdminNotifications />
+          <Suspense fallback={<ComponentLoader />}>
+            <AdminNotifications />
+          </Suspense>
         </TabsContent>
 
         {/* Player Management */}
         <TabsContent value="players">
-          <AdminPlayers />
+          <Suspense fallback={<ComponentLoader />}>
+            <AdminPlayers />
+          </Suspense>
         </TabsContent>
 
         {/* KYC Settings */}
         <TabsContent value="kyc">
-          <AdminKYC />
+          <Suspense fallback={<ComponentLoader />}>
+            <AdminKYC />
+          </Suspense>
         </TabsContent>
 
         {/* Wallet Management */}
         <TabsContent value="wallet">
-          <AdminWallet />
+          <Suspense fallback={<ComponentLoader />}>
+            <AdminWallet />
+          </Suspense>
         </TabsContent>
 
         {/* Store Management */}
         <TabsContent value="store">
-          <AdminStore />
+          <Suspense fallback={<ComponentLoader />}>
+            <AdminStore />
+          </Suspense>
         </TabsContent>
 
         {/* Financial Management */}
         <TabsContent value="financial">
-          <AdminFinancial />
+          <Suspense fallback={<ComponentLoader />}>
+            <AdminFinancial />
+          </Suspense>
         </TabsContent>
 
         {/* Games & Sports */}
         <TabsContent value="games">
-          <AdminGamesSports />
+          <Suspense fallback={<ComponentLoader />}>
+            <AdminGamesSports />
+          </Suspense>
         </TabsContent>
 
         {/* AI Game Editor */}
         <TabsContent value="ai-editor">
-          <AIGameEditor />
+          <Suspense fallback={<ComponentLoader />}>
+            <AIGameEditor />
+          </Suspense>
         </TabsContent>
 
         {/* Operations */}
         <TabsContent value="operations">
-          <AdminOperations />
+          <Suspense fallback={<ComponentLoader />}>
+            <AdminOperations />
+          </Suspense>
         </TabsContent>
 
         {/* Advanced */}
         <TabsContent value="advanced">
-          <AdminAdvanced />
+          <Suspense fallback={<ComponentLoader />}>
+            <AdminAdvanced />
+          </Suspense>
         </TabsContent>
       </Tabs>
     </div>
