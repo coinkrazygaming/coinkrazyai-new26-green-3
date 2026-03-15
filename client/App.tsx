@@ -43,6 +43,9 @@ import CoinKrazyThunder from "./pages/CoinKrazyThunder";
 import CoinKrazy4Wolfs from "./pages/CoinKrazy4Wolfs";
 import CoinKrazyChiliCoins from "./pages/CoinKrazyChiliCoins";
 import CoinKrazy4EgyptPots from "./pages/CoinKrazy4EgyptPots";
+import { BlackjackGame } from "./components/table/BlackjackGame";
+import { RouletteGame } from "./components/table/RouletteGame";
+import { BaccaratGame } from "./components/table/BaccaratGame";
 
 const queryClient = new QueryClient();
 
@@ -312,6 +315,30 @@ const AppRoutes = () => (
       element={
         <Layout>
           <AIGameEditor />
+        </Layout>
+      }
+    />
+    <Route
+      path="/blackjack"
+      element={
+        <Layout>
+          <BlackjackGame />
+        </Layout>
+      }
+    />
+    <Route
+      path="/roulette"
+      element={
+        <Layout>
+          <RouletteGame />
+        </Layout>
+      }
+    />
+    <Route
+      path="/baccarat"
+      element={
+        <Layout>
+          <BaccaratGame />
         </Layout>
       }
     />
