@@ -174,12 +174,13 @@ export const testProviderConnection: RequestHandler = async (req, res) => {
 // ===== SYNC PROVIDER GAMES =====
 export const syncProviderGames: RequestHandler = async (req, res) => {
   try {
-    const { providerId } = req.params;
+    const { providerId } = req.params as { providerId: string };
+    const providerIdNum = parseInt(providerId, 10);
 
     // Get provider config
     const providerResult = await query(
       'SELECT * FROM game_providers WHERE id = $1',
-      [providerId]
+      [providerIdNum]
     );
 
     if (providerResult.rows.length === 0) {
@@ -202,7 +203,7 @@ export const syncProviderGames: RequestHandler = async (req, res) => {
 
     // Run sync
     const syncResult = await providerIntegrations.syncProviderGamesToDb(
-      providerId,
+      providerIdNum,
       provider.slug,
       config,
       req.user?.id
@@ -211,7 +212,7 @@ export const syncProviderGames: RequestHandler = async (req, res) => {
     // Update provider last sync time
     await query(
       'UPDATE game_providers SET last_sync_at = CURRENT_TIMESTAMP WHERE id = $1',
-      [providerId]
+      [providerIdNum]
     );
 
     res.json({

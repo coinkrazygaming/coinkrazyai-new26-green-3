@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import {
   Search,
-  Toggle2,
+  ToggleRight,
   Edit2,
   Trash2,
   Zap,
@@ -360,7 +360,7 @@ export const GamesManagementTab: React.FC<{
                         : 'bg-green-600 hover:bg-green-700'
                     }`}
                   >
-                    <Toggle2 className="w-3 h-3 mr-1" />
+                    <ToggleRight className="w-3 h-3 mr-1" />
                     {game.enabled ? 'Disable' : 'Enable'}
                   </Button>
                   <Button
@@ -441,7 +441,7 @@ export const GamesManagementTab: React.FC<{
                       : 'bg-green-600 hover:bg-green-700'
                   }`}
                 >
-                  <Toggle2 className="w-3 h-3" />
+                  <ToggleRight className="w-3 h-3" />
                 </Button>
                 <Button
                   onClick={() => handleReworkWithAI(game.id)}

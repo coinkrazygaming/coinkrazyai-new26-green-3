@@ -41,6 +41,9 @@ export interface PlayerProfile {
   avatar_url?: string;
   created_at?: string;
   password?: string;
+  // Admin fields
+  isAdmin?: boolean;
+  role?: string;
   // Stats & VIP
   total_wagered?: number;
   total_won?: number;

@@ -17,6 +17,30 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     outDir: "dist/spa",
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // Vendor chunks - split large dependencies
+          if (id.includes('node_modules/react')) {
+            return 'vendor-react';
+          }
+          if (id.includes('node_modules/@radix-ui')) {
+            return 'vendor-radix';
+          }
+          if (id.includes('node_modules/recharts')) {
+            return 'vendor-charts';
+          }
+          if (id.includes('node_modules/three')) {
+            return 'vendor-three';
+          }
+          // Admin components (lazy loaded)
+          if (id.includes('client/components/admin')) {
+            return 'admin';
+          }
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000, // App is feature-rich with comprehensive admin dashboard and multiple games
   },
   plugins: [react(), expressPlugin()],
   resolve: {

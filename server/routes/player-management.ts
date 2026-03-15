@@ -461,7 +461,7 @@ export const updatePlayerBalanceByUsername: RequestHandler = async (req, res) =>
 
 export const updatePlayerStatusByUsername: RequestHandler = async (req, res) => {
   try {
-    const { username } = req.params;
+    const { username } = req.params as { username: string };
     const { status, reason } = req.body;
 
     // Resolve username to playerId

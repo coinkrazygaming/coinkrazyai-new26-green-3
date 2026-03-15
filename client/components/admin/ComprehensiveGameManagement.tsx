@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, Toggle2, Eye, EyeOff, Settings, Trash2, Plus, Edit2 } from 'lucide-react';
+import { Loader2, Search, ToggleRight, Eye, EyeOff, Settings, Trash2, Plus, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { games, adminV2 } from '@/lib/api';
 
