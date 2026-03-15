@@ -352,6 +352,10 @@ import {
   handleGetBonusStreak
 } from "./routes/daily-login-bonus";
 import {
+  handleGetSpinWheelStatus,
+  handleClaimSpinReward
+} from "./routes/daily-spin-wheel";
+import {
   handleGetOrCreateReferralLink,
   handleRegisterWithReferral,
   handleCompleteReferralClaim,
@@ -1088,6 +1092,10 @@ export function createServer() {
   app.get("/api/daily-bonus", verifyPlayer, handleGetDailyBonus);
   app.post("/api/daily-bonus/claim", verifyPlayer, handleClaimDailyBonus);
   app.get("/api/daily-bonus/streak", verifyPlayer, handleGetBonusStreak);
+
+  // Daily Spin Wheel
+  app.get("/api/spin-wheel/status", verifyPlayer, handleGetSpinWheelStatus);
+  app.post("/api/spin-wheel/claim", verifyPlayer, handleClaimSpinReward);
 
   // Referral System
   app.get("/api/referral/link", verifyPlayer, handleGetOrCreateReferralLink);
