@@ -7,29 +7,25 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useWallet } from '@/hooks/use-wallet';
+import { spinService, SpinResult, SpinRequest } from '@/lib/spin-service';
 import { toast } from 'sonner';
-
-export interface GameResult {
-  success: boolean;
-  winnings: number;
-  newBalance: number;
-  details?: Record<string, any>;
-}
 
 export interface GameSessionConfig {
   gameId: string;
   gameName?: string;
   minBet: number;
   maxBet: number;
+  gameType?: 'slots' | 'casino' | 'table' | 'card' | 'mini' | 'external';
+  coinkrazyVariant?: string; // e.g., 'coinup', 'coinhot'
 }
 
 export interface GameSessionState {
   isProcessing: boolean;
-  lastResult?: GameResult;
+  lastResult?: SpinResult;
   error?: string;
 }
 
-export type SpinHandler = (betAmount: number) => Promise<GameResult>;
+export type SpinHandler = (betAmount: number, userId?: string) => Promise<SpinResult>;
 
 export function useGameSession(config: GameSessionConfig) {
   const { user } = useAuth();
@@ -43,42 +39,44 @@ export function useGameSession(config: GameSessionConfig) {
   /**
    * Validates bet amount against constraints
    */
-  const validateBet = useCallback((betAmount: number): { valid: boolean; error?: string } => {
-    if (betAmount < config.minBet) {
-      return {
-        valid: false,
-        error: `Minimum bet is ${config.minBet.toFixed(2)} SC`,
-      };
-    }
+  const validateBet = useCallback(
+    (betAmount: number): { valid: boolean; error?: string } => {
+      if (betAmount < config.minBet) {
+        return {
+          valid: false,
+          error: `Minimum bet is ${config.minBet.toFixed(2)} SC`,
+        };
+      }
 
-    if (betAmount > config.maxBet) {
-      return {
-        valid: false,
-        error: `Maximum bet is ${config.maxBet.toFixed(2)} SC`,
-      };
-    }
+      if (betAmount > config.maxBet) {
+        return {
+          valid: false,
+          error: `Maximum bet is ${config.maxBet.toFixed(2)} SC`,
+        };
+      }
 
-    if (sweepsCoins < betAmount) {
-      return {
-        valid: false,
-        error: 'Insufficient balance',
-      };
-    }
+      if (sweepsCoins < betAmount) {
+        return {
+          valid: false,
+          error: 'Insufficient balance',
+        };
+      }
 
-    return { valid: true };
-  }, [config.minBet, config.maxBet, sweepsCoins]);
+      return { valid: true };
+    },
+    [config.minBet, config.maxBet, sweepsCoins]
+  );
 
   /**
-   * Execute a game spin/play with optimistic updates
+   * Execute a game spin using spinService
    * 1. Validate bet
-   * 2. Deduct balance optimistically
-   * 3. Call spin handler (API call)
-   * 4. Update balance based on result
-   * 5. Refresh wallet from server
-   * 6. Handle errors with rollback
+   * 2. Call appropriate spin handler based on game type
+   * 3. Update balance based on result
+   * 4. Refresh wallet from server
+   * 5. Handle errors with rollback
    */
   const playSpin = useCallback(
-    async (betAmount: number, spinHandler: SpinHandler) => {
+    async (betAmount: number, spinHandler?: SpinHandler) => {
       // 1. Validate bet
       const validation = validateBet(betAmount);
       if (!validation.valid) {
@@ -89,11 +87,39 @@ export function useGameSession(config: GameSessionConfig) {
       setState(prev => ({ ...prev, isProcessing: true, error: undefined }));
 
       try {
-        // 2. Call game handler (API call happens here)
-        const result = await spinHandler(betAmount);
+        let result: SpinResult;
+
+        // 2. Use provided handler OR call spinService based on game type
+        if (spinHandler) {
+          // Custom handler (for games with special logic)
+          result = await spinHandler(betAmount, user?.id);
+        } else {
+          // Use spinService based on game type
+          const spinRequest: SpinRequest = {
+            gameId: config.gameId,
+            gameName: config.gameName,
+            betAmount,
+            userId: user?.id,
+          };
+
+          switch (config.gameType) {
+            case 'slots':
+              result = await spinService.playSlots(spinRequest);
+              break;
+            case 'casino':
+              result = await spinService.playCasino(spinRequest);
+              break;
+            case 'external':
+              result = await spinService.playSpin(spinRequest, 'external');
+              break;
+            default:
+              // Generic game endpoint
+              result = await spinService.playSpin(spinRequest);
+          }
+        }
 
         if (!result.success) {
-          throw new Error('Spin failed');
+          throw new Error(result.error || 'Spin failed');
         }
 
         // 3. Update state with result
@@ -104,8 +130,8 @@ export function useGameSession(config: GameSessionConfig) {
         }));
 
         // 4. Show win notification if applicable
-        if (result.winnings > 0) {
-          toast.success(`🎉 Won ${result.winnings.toFixed(2)} SC!`);
+        if (result.winAmount > 0) {
+          toast.success(`🎉 Won ${result.winAmount.toFixed(2)} SC!`);
         } else {
           toast.info('No win this time. Try again!');
         }
@@ -116,7 +142,7 @@ export function useGameSession(config: GameSessionConfig) {
         return result;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Game error occurred';
-        
+
         setState(prev => ({
           ...prev,
           isProcessing: false,
@@ -124,14 +150,14 @@ export function useGameSession(config: GameSessionConfig) {
         }));
 
         toast.error(errorMessage);
-        
+
         // Refresh wallet to ensure balance is in sync
         await refreshWallet();
-        
+
         throw error;
       }
     },
-    [validateBet, refreshWallet]
+    [config.gameId, config.gameName, config.gameType, user?.id, validateBet, refreshWallet]
   );
 
   /**
@@ -149,6 +175,8 @@ export function useGameSession(config: GameSessionConfig) {
     lastResult: state.lastResult,
     error: state.error,
     currentBalance: sweepsCoins,
+    lastWin: state.lastResult?.winAmount || 0,
+    lastNetResult: state.lastResult?.netResult || 0,
 
     // Actions
     playSpin,
@@ -157,5 +185,6 @@ export function useGameSession(config: GameSessionConfig) {
 
     // User info
     userId: user?.id,
+    username: (user as any)?.username,
   };
 }

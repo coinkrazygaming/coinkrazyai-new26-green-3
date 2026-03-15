@@ -8,7 +8,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BaseGameLayout } from '@/components/game/BaseGameLayout';
 import { BetController } from '@/components/game/BetController';
-import { useGameSession, GameResult } from '@/hooks/use-game-session';
+import { useGameSession } from '@/hooks/use-game-session';
+import { SpinResult } from '@/lib/spin-service';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -214,10 +215,11 @@ export const BlackjackGame: React.FC<BlackjackGameProps> = ({
   onClose,
 }) => {
   const gameSession = useGameSession({
-    gameId,
-    gameName,
+    gameId: gameId || 'blackjack-classic',
+    gameName: gameName || 'Blackjack',
     minBet: MIN_BET,
     maxBet: MAX_BET,
+    gameType: 'table',
   });
 
   const [gameState, setGameState] = useState<GameState>({
@@ -240,11 +242,8 @@ export const BlackjackGame: React.FC<BlackjackGameProps> = ({
       return;
     }
 
-    // Create spin handler for this game
-    const spinHandler = async (): Promise<GameResult> => {
-      // Simulate game logic (in production, this would call server)
-      // For now, we'll do client-side game logic
-
+    // Create custom spin handler for Blackjack logic
+    const spinHandler = async (betAmount: number, userId?: string) => {
       const newDeck = [...deck];
       if (newDeck.length < 20) {
         setDeck(createDeck());
@@ -265,11 +264,16 @@ export const BlackjackGame: React.FC<BlackjackGameProps> = ({
         gameStatus: 'playing',
       }));
 
-      // Continue game...
+      // Return initial spin result (game continues with hit/stand)
       return {
         success: true,
-        winnings: 0,
-        newBalance: gameSession.currentBalance,
+        gameId: gameId || 'blackjack-classic',
+        gameName: gameName || 'Blackjack',
+        betAmount,
+        winAmount: 0, // Will be determined when game ends
+        netResult: -betAmount, // Bet is deducted
+        result: 'loss' as const,
+        balanceAfter: gameSession.currentBalance - betAmount,
       };
     };
 

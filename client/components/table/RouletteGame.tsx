@@ -25,17 +25,32 @@ export const RouletteGame: React.FC<RouletteGameProps> = ({
   onClose,
 }) => {
   const gameSession = useGameSession({
-    gameId,
-    gameName,
+    gameId: gameId || 'roulette-european',
+    gameName: gameName || 'European Roulette',
     minBet: MIN_BET,
     maxBet: MAX_BET,
+    gameType: 'table',
   });
 
   const [betAmount, setBetAmount] = useState(1);
 
   const handleSpin = async () => {
-    // Placeholder logic - to be implemented
-    console.log('Roulette spin with bet:', betAmount);
+    // Spinner handler for Roulette - will integrate with backend
+    const spinHandler = async (bet: number) => {
+      // Placeholder - would call server with roulette-specific logic
+      return {
+        success: true,
+        gameId: gameId || 'roulette-european',
+        gameName: gameName || 'European Roulette',
+        betAmount: bet,
+        winAmount: 0,
+        netResult: -bet,
+        result: 'loss' as const,
+        balanceAfter: gameSession.currentBalance - bet,
+      };
+    };
+
+    await gameSession.playSpin(betAmount, spinHandler);
   };
 
   return (
