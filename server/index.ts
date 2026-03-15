@@ -419,6 +419,15 @@ import { handleCoinKrazyCoinHotSpin } from "./routes/coinkrazy-coinhot";
 import { handleCoinKrazy4WolfsSpin } from "./routes/coinkrazy-4wolfs";
 import { handleCoinKrazy4EgyptPotsSpin } from "./routes/coinkrazy-4egypt-pots";
 import {
+  handleCreateGame,
+  handleGetGame,
+  handleRecordMove,
+  handleFinishGame,
+  handleGetGameHistory,
+  handleGetLeaderboard as handleGetPoolLeaderboard,
+  handleGetStats as handleGetPoolStats
+} from "./routes/pool-shark";
+import {
   listPlayerTickets,
   createPlayerTicket,
   getTicketDetails,
@@ -652,6 +661,15 @@ export function createServer() {
   app.get("/api/coinkrazy-thunder/stats", verifyPlayer, handleGetThunderStats);
   app.post("/api/coinkrazy-4wolfs/spin", verifyPlayer, handleCoinKrazy4WolfsSpin);
   app.post("/api/coinkrazy-4egypt-pots/spin", verifyPlayer, handleCoinKrazy4EgyptPotsSpin);
+
+  // ===== POOL SHARK ROUTES =====
+  app.post("/api/pool-shark/game", verifyPlayer, handleCreateGame);
+  app.get("/api/pool-shark/game/:gameId", verifyPlayer, handleGetGame);
+  app.post("/api/pool-shark/move", verifyPlayer, handleRecordMove);
+  app.post("/api/pool-shark/finish", verifyPlayer, handleFinishGame);
+  app.get("/api/pool-shark/history", verifyPlayer, handleGetGameHistory);
+  app.get("/api/pool-shark/leaderboard", handleGetPoolLeaderboard);
+  app.get("/api/pool-shark/stats", verifyPlayer, handleGetPoolStats);
 
   // ===== ADMIN ROUTES =====
   app.post("/api/admin/login", handleAdminLogin);

@@ -408,10 +408,32 @@ const Index = () => {
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-black italic uppercase tracking-tight">Mini Games</h2>
-            <Button variant="outline" size="sm" className="font-black italic text-xs uppercase border-2">PLAY MINI</Button>
+            <h2 className="text-3xl font-black italic uppercase tracking-tight">Table Games</h2>
+            <Button variant="outline" size="sm" className="font-black italic text-xs uppercase border-2">PLAY NOW</Button>
           </div>
           <div className="grid grid-cols-2 gap-4">
+            <Link to="/roulette" className="block">
+              <Card className="bg-slate-900 border-2 border-white/5 overflow-hidden group hover:border-yellow-500/30 transition-all">
+                <div className="h-32 bg-gradient-to-br from-red-600 to-yellow-500 flex items-center justify-center">
+                  <div className="text-4xl font-black">🎡</div>
+                </div>
+                <CardContent className="p-4">
+                  <h4 className="font-black italic uppercase text-sm">Roulette</h4>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase">Spin to Win</p>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link to="/blackjack" className="block">
+              <Card className="bg-slate-900 border-2 border-white/5 overflow-hidden group hover:border-yellow-500/30 transition-all">
+                <div className="h-32 bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center">
+                  <div className="text-4xl font-black">♠️</div>
+                </div>
+                <CardContent className="p-4">
+                  <h4 className="font-black italic uppercase text-sm">Blackjack</h4>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase">21 or Bust</p>
+                </CardContent>
+              </Card>
+            </Link>
             <Link to="/dice" className="block">
               <Card className="bg-slate-900 border-2 border-white/5 overflow-hidden group hover:border-yellow-500/30 transition-all">
                 <div className="h-32 bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
@@ -425,7 +447,7 @@ const Index = () => {
             </Link>
             <Link to="/plinko" className="block">
               <Card className="bg-slate-900 border-2 border-white/5 overflow-hidden group hover:border-yellow-500/30 transition-all">
-                <div className="h-32 bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center">
+                <div className="h-32 bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
                   <Zap className="w-12 h-12 text-white animate-pulse" />
                 </div>
                 <CardContent className="p-4">
