@@ -87,9 +87,7 @@ export const AIChatWidget = () => {
     try {
       setIsLoadingHistory(true);
       const response = await fetch(`/api/ai/conversation/history?sessionId=${sessionId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        }
+        credentials: 'include'
       });
 
       if (!response.ok) return;
@@ -115,9 +113,7 @@ export const AIChatWidget = () => {
   const loadSessions = async () => {
     try {
       const response = await fetch('/api/ai/conversation/sessions', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        }
+        credentials: 'include'
       });
 
       if (!response.ok) return;
@@ -166,9 +162,9 @@ export const AIChatWidget = () => {
     try {
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           message: messageToSend,

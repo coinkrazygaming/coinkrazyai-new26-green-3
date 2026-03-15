@@ -126,9 +126,7 @@ export const KYCOnboardingPopup: React.FC<KYCOnboardingPopupProps> = ({
         try {
           const response = await fetch('/api/kyc/upload', {
             method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-            },
+            credentials: 'include',
             body: formData
           });
 
