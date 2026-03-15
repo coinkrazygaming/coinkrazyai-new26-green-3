@@ -20,7 +20,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
-import { rateLimit } from "express-rate-limit";
+import { rateLimit, ipKeyGenerator } from "express-rate-limit";
 import { initializeDatabase } from "./db/init";
 import { query } from "./db/connection";
 import { errorHandler } from "./middleware/error-handler";
@@ -135,6 +135,7 @@ import {
 } from "./routes/achievements";
 import * as adminDb from "./routes/admin-db";
 import { AIService } from "./services/ai-service";
+import crypto from "crypto";
 
 // ===== NEW COMPREHENSIVE ADMIN ROUTES =====
 import {
@@ -474,8 +475,25 @@ export function createServer() {
     }
   }
 
-  if (process.env.JWT_SECRET === 'your-secret-key-change-in-production') {
-    console.warn('[SECURITY] Using default JWT_SECRET. Please change this in production!');
+  // Validate JWT_SECRET strength
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret || jwtSecret === 'your-secret-key-change-in-production') {
+    console.error('[CRITICAL SECURITY] Invalid JWT_SECRET: must be non-empty and not the default value');
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[CRITICAL] Terminating process due to insecure JWT_SECRET');
+      process.exit(1);
+    } else {
+      console.warn('[SECURITY] WARNING: Using weak JWT_SECRET in development. Change BEFORE production!');
+    }
+  }
+  if (jwtSecret && jwtSecret.length < 32) {
+    console.error('[CRITICAL SECURITY] JWT_SECRET is too short (minimum 32 characters)');
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[CRITICAL] Terminating process due to weak JWT_SECRET');
+      process.exit(1);
+    } else {
+      console.warn('[SECURITY] WARNING: JWT_SECRET is weak. Increase to 32+ characters BEFORE production!');
+    }
   }
 
   // Initialize database
@@ -504,18 +522,48 @@ export function createServer() {
     } : false,
   }));
 
-  const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['*'];
+  // CORS Configuration with explicit origin validation
+  const allowedOriginsList = (process.env.ALLOWED_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean);
+
+  if (process.env.NODE_ENV === 'production' && allowedOriginsList.length === 0) {
+    console.error('[CRITICAL] ALLOWED_ORIGINS not configured in production');
+    console.error('[CRITICAL] Set ALLOWED_ORIGINS environment variable to comma-separated list of domains');
+    console.error('[CRITICAL] Terminating process');
+    process.exit(1);
+  }
+
+  // Default to localhost in development only
+  const corsOrigins = process.env.NODE_ENV === 'production'
+    ? allowedOriginsList
+    : (allowedOriginsList.length > 0 ? allowedOriginsList : ['http://localhost:8080', 'http://localhost:3000']);
+
   app.use(cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
-        callback(null, true);
+      // In production, require explicit origin
+      if (process.env.NODE_ENV === 'production') {
+        if (!origin) {
+          callback(new Error('Origin required in production'));
+        } else if (corsOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          console.warn(`[CORS] Blocked request from unauthorized origin: ${origin}`);
+          callback(new Error('Origin not allowed by CORS policy'));
+        }
       } else {
-        console.warn(`[CORS] Blocked request from origin: ${origin}`);
-        callback(new Error('Not allowed by CORS'));
+        // In development, be more permissive but still validate
+        if (!origin || corsOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          console.warn(`[CORS] Development warning: request from ${origin} not in allowed list`);
+          callback(null, true); // Still allow in dev for flexibility
+        }
       }
     },
-    credentials: true
+    credentials: true,
+    optionsSuccessStatus: 200,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
+    exposedHeaders: ['X-Request-ID']
   }));
   app.use(cookieParser());
   app.use(express.json({
@@ -527,19 +575,66 @@ export function createServer() {
   }));
   app.use(express.urlencoded({ extended: true }));
 
-  // Rate Limiting
-  const limiter = rateLimit({
+  // HTTPS Enforcement in production
+  if (process.env.NODE_ENV === 'production') {
+    app.use((req, res, next) => {
+      // Check for X-Forwarded-Proto header (set by load balancer)
+      const proto = req.header('x-forwarded-proto');
+      if (proto && proto !== 'https') {
+        console.warn(`[SECURITY] Non-HTTPS request detected from ${req.ip}`);
+        return res.redirect(301, `https://${req.header('host')}${req.url}`);
+      }
+      next();
+    });
+  }
+
+  // Rate Limiting - Global rate limiter for general API use
+  // Use ipKeyGenerator for IPv6 support
+  const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 1000, // Limit each IP to 1000 requests per windowMs
+    max: 500, // Reduced from 1000 for better protection
     standardHeaders: true,
     legacyHeaders: false,
-    message: { success: false, error: 'Too many requests, please try again later.' }
+    message: { success: false, error: 'Too many requests, please try again later.' },
+    keyGenerator: (req) => {
+      // Use user ID if authenticated, otherwise use IPv6-safe IP key generator
+      if (req.user?.id) {
+        return `user-${req.user.id}`;
+      }
+      return ipKeyGenerator(req);
+    }
   });
-  app.use('/api/', limiter);
 
-  // Log all requests
-  app.use((req, _res, next) => {
-    console.log(`[HTTP] ${req.method} ${req.url}`);
+  // Strict rate limiter for authentication endpoints
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // Only 5 attempts per 15 minutes
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'Too many authentication attempts. Please try again later.' },
+    keyGenerator: ipKeyGenerator, // Use built-in IPv6-safe generator
+    // Skip rate limiting for already authenticated requests
+    skip: (req) => req.user !== undefined
+  });
+
+  // Apply global limiter to all API routes
+  app.use('/api/', globalLimiter);
+
+  // Request logging with request ID and improved formatting
+  app.use((req, res, next) => {
+    // Generate request ID for tracing
+    const requestId = req.header('x-request-id') || crypto.randomBytes(8).toString('hex');
+    (req as any).requestId = requestId;
+
+    const startTime = Date.now();
+
+    res.on('finish', () => {
+      const duration = Date.now() - startTime;
+      // Log without sensitive information (no auth tokens, passwords, etc)
+      const sanitizedUrl = req.url.replace(/password/gi, '***').replace(/token/gi, '***');
+      console.log(`[HTTP] ${requestId} ${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`);
+    });
+
     next();
   });
 
@@ -564,9 +659,10 @@ export function createServer() {
   });
 
   // ===== AUTH ROUTES =====
-  app.post("/api/auth/register", validate(registerSchema), handleRegister);
-  app.post("/api/auth/login", validate(loginSchema), handleLogin);
-  app.post("/api/auth/admin/login", validate(adminLoginSchema), handleAdminLogin);
+  // Apply strict rate limiting to authentication endpoints
+  app.post("/api/auth/register", authLimiter, validate(registerSchema), handleRegister);
+  app.post("/api/auth/login", authLimiter, validate(loginSchema), handleLogin);
+  app.post("/api/auth/admin/login", authLimiter, validate(adminLoginSchema), handleAdminLogin);
   app.get("/api/auth/profile", verifyPlayer, handleGetProfile);
   app.put("/api/auth/profile", verifyPlayer, validate(updateProfileSchema), handleUpdateProfile);
   app.post("/api/auth/logout", verifyPlayer, handleLogout);
