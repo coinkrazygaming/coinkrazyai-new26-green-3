@@ -4,6 +4,8 @@ import path from "path";
 import { createServer } from "./server";
 import { setupSocketIO } from "./server/socket";
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
@@ -42,7 +44,7 @@ export default defineConfig(({ mode }) => ({
     },
     chunkSizeWarningLimit: 1000, // App is feature-rich with comprehensive admin dashboard and multiple games
   },
-  plugins: [react(), expressPlugin()],
+  plugins: [react(), expressPlugin(), cloudflare()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./client"),
