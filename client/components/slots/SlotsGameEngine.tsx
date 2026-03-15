@@ -136,7 +136,7 @@ const SlotsGameEngine: React.FC<SlotsGameEngineProps> = ({ gameId, gameName = 'M
     }));
 
     const winnings = checkWin(finalReels);
-    const newBalance = gameState.balance - gameState.currentBet + winnings;
+    const newBalance = gameState.balance + winnings;
 
     if (winnings > 0) {
       toast.success(`🎉 Big Win! ${winnings.toFixed(2)} SC!`);
@@ -217,7 +217,6 @@ const SlotsGameEngine: React.FC<SlotsGameEngineProps> = ({ gameId, gameName = 'M
                         className={`
                           w-full h-32 flex items-center justify-center text-6xl font-black rounded-2xl border-2
                           ${rowIdx === 1 ? 'border-yellow-500 bg-yellow-500/20 shadow-lg shadow-yellow-500/50' : 'border-slate-600 bg-slate-800'}
-                          ${gameState.spinning ? 'animate-spin' : ''}
                           transition-all duration-300
                         `}
                       >
