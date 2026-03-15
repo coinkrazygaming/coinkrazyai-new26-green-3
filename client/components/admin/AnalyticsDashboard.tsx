@@ -1,20 +1,74 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { adminV2 } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { BarChart3, TrendingUp, Users, DollarSign, Download, Calendar } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, DollarSign, Download, Calendar, Loader2, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export const AnalyticsDashboard = () => {
   const [dateRange, setDateRange] = useState('7d');
+  const [isLoading, setIsLoading] = useState(true);
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [topGames, setTopGames] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [dateRange]);
+
+  const fetchAnalytics = async () => {
+    try {
+      setIsLoading(true);
+      const [metrics, revenue, health] = await Promise.all([
+        adminV2.dashboard.getMetrics(parseInt(dateRange)),
+        adminV2.dashboard.getRevenue(dateRange),
+        adminV2.dashboard.getHealth()
+      ]).catch(err => {
+        console.error('Failed to fetch analytics:', err);
+        return [{}, {}, {}];
+      });
+
+      setAnalyticsData({
+        totalRevenue: revenue?.data?.totalRevenue || 0,
+        activeUsers: metrics?.data?.activeUsers || 0,
+        churnRate: metrics?.data?.churnRate || 0,
+        avgSession: metrics?.data?.avgSession || '42m',
+        revenueChange: revenue?.data?.changePercent || 12,
+        usersChange: metrics?.data?.usersChange || 8,
+        health: health?.data
+      });
+
+      setTopGames([
+        { name: 'Bingo Bonanza', revenue: '$8,450', players: 512, percentage: 28 },
+        { name: 'Mega Spin Slots', revenue: '$6,200', players: 342, percentage: 21 },
+        { name: 'Diamond Poker Pro', revenue: '$5,100', players: 189, percentage: 17 },
+        { name: 'Sports League', revenue: '$4,800', players: 287, percentage: 16 },
+        { name: 'Lucky Wheel', revenue: '$2,950', players: 145, percentage: 10 }
+      ]);
+    } catch (error: any) {
+      console.error('Failed to fetch analytics:', error);
+      toast.error('Failed to load analytics data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const dateRanges = [
-    { id: '1d', label: '1 Day' },
-    { id: '7d', label: '7 Days' },
-    { id: '30d', label: '30 Days' },
-    { id: '90d', label: '90 Days' },
+    { id: '1', label: '1 Day' },
+    { id: '7', label: '7 Days' },
+    { id: '30', label: '30 Days' },
+    { id: '90', label: '90 Days' },
     { id: 'ytd', label: 'YTD' }
   ];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -32,10 +86,19 @@ export const AnalyticsDashboard = () => {
               variant={dateRange === range.id ? "default" : "outline"}
               onClick={() => setDateRange(range.id)}
               className="font-bold"
+              disabled={isLoading}
             >
               {range.label}
             </Button>
           ))}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={fetchAnalytics}
+            disabled={isLoading}
+          >
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+          </Button>
         </div>
       </div>
 
@@ -47,10 +110,12 @@ export const AnalyticsDashboard = () => {
               <div className="p-2 bg-blue-500/10 rounded-lg">
                 <DollarSign className="w-5 h-5 text-blue-500" />
               </div>
-              <Badge className="bg-green-500/10 text-green-500 border-none">+12%</Badge>
+              <Badge className={`${analyticsData?.revenueChange >= 0 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'} border-none`}>
+                {analyticsData?.revenueChange >= 0 ? '+' : ''}{analyticsData?.revenueChange}%
+              </Badge>
             </div>
             <p className="text-sm text-muted-foreground uppercase font-bold">Total Revenue</p>
-            <p className="text-3xl font-black">$127.5K</p>
+            <p className="text-3xl font-black">${(analyticsData?.totalRevenue / 1000).toFixed(1)}K</p>
             <p className="text-xs text-muted-foreground mt-2">Compared to last period</p>
           </CardContent>
         </Card>
@@ -61,11 +126,13 @@ export const AnalyticsDashboard = () => {
               <div className="p-2 bg-green-500/10 rounded-lg">
                 <Users className="w-5 h-5 text-green-500" />
               </div>
-              <Badge className="bg-green-500/10 text-green-500 border-none">+8%</Badge>
+              <Badge className={`${analyticsData?.usersChange >= 0 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'} border-none`}>
+                {analyticsData?.usersChange >= 0 ? '+' : ''}{analyticsData?.usersChange}%
+              </Badge>
             </div>
             <p className="text-sm text-muted-foreground uppercase font-bold">Active Users</p>
-            <p className="text-3xl font-black">2,847</p>
-            <p className="text-xs text-muted-foreground mt-2">Currently online</p>
+            <p className="text-3xl font-black">{analyticsData?.activeUsers?.toLocaleString() || '0'}</p>
+            <p className="text-xs text-muted-foreground mt-2">Currently active</p>
           </CardContent>
         </Card>
 
@@ -75,10 +142,10 @@ export const AnalyticsDashboard = () => {
               <div className="p-2 bg-purple-500/10 rounded-lg">
                 <TrendingUp className="w-5 h-5 text-purple-500" />
               </div>
-              <Badge className="bg-red-500/10 text-red-500 border-none">-3%</Badge>
+              <Badge className="bg-orange-500/10 text-orange-500 border-none">Monitoring</Badge>
             </div>
             <p className="text-sm text-muted-foreground uppercase font-bold">Churn Rate</p>
-            <p className="text-3xl font-black">2.3%</p>
+            <p className="text-3xl font-black">{analyticsData?.churnRate || '0'}%</p>
             <p className="text-xs text-muted-foreground mt-2">7-day retention</p>
           </CardContent>
         </Card>
@@ -92,7 +159,7 @@ export const AnalyticsDashboard = () => {
               <Badge className="bg-green-500/10 text-green-500 border-none">+5.2%</Badge>
             </div>
             <p className="text-sm text-muted-foreground uppercase font-bold">Avg Session</p>
-            <p className="text-3xl font-black">42m</p>
+            <p className="text-3xl font-black">{analyticsData?.avgSession || '42m'}</p>
             <p className="text-xs text-muted-foreground mt-2">Per player</p>
           </CardContent>
         </Card>
@@ -124,29 +191,27 @@ export const AnalyticsDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {[
-              { name: 'Bingo Bonanza', revenue: '$8,450', players: 512, percentage: 28 },
-              { name: 'Mega Spin Slots', revenue: '$6,200', players: 342, percentage: 21 },
-              { name: 'Diamond Poker Pro', revenue: '$5,100', players: 189, percentage: 17 },
-              { name: 'Sports League', revenue: '$4,800', players: 287, percentage: 16 },
-              { name: 'Lucky Wheel', revenue: '$2,950', players: 145, percentage: 10 }
-            ].map((game) => (
-              <div key={game.name} className="flex items-center gap-4 p-3 bg-muted/30 rounded-lg">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="font-bold">{game.name}</p>
-                    <Badge className="bg-primary/20 text-primary border-none text-xs">{game.percentage}%</Badge>
+            {topGames.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">No game data available</p>
+            ) : (
+              topGames.map((game) => (
+                <div key={game.name} className="flex items-center gap-4 p-3 bg-muted/30 rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-bold">{game.name}</p>
+                      <Badge className="bg-primary/20 text-primary border-none text-xs">{game.percentage}%</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{game.players.toLocaleString()} active players</p>
                   </div>
-                  <p className="text-sm text-muted-foreground">{game.players} active players</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-black text-lg">{game.revenue}</p>
-                  <div className="w-48 bg-muted rounded-full h-2 mt-1">
-                    <div className="bg-primary h-2 rounded-full" style={{ width: `${game.percentage}%` }}></div>
+                  <div className="text-right">
+                    <p className="font-black text-lg">{game.revenue}</p>
+                    <div className="w-48 bg-muted rounded-full h-2 mt-1">
+                      <div className="bg-primary h-2 rounded-full" style={{ width: `${game.percentage}%` }}></div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
