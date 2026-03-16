@@ -125,26 +125,21 @@ export const handleClaimSpinReward: RequestHandler = async (req, res) => {
 
     const reward = insertResult.rows[0];
 
-    // Add to player's wallet
+    // Add to player's wallet (players table has gc_balance and sc_balance)
     await query(
-      `UPDATE wallet 
-       SET sweeps_coins = sweeps_coins + $1, 
-           gold_coins = gold_coins + $2 
-       WHERE player_id = $3`,
+      `UPDATE players
+       SET sc_balance = sc_balance + $1,
+           gc_balance = gc_balance + $2,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $3`,
       [rewardSC, rewardGC, playerId]
     );
 
-    // Record transaction for both currencies
+    // Record transaction in wallet_ledger
     await query(
-      `INSERT INTO wallet_transactions (player_id, transaction_type, amount, currency, description)
+      `INSERT INTO wallet_ledger (player_id, transaction_type, sc_amount, gc_amount, description)
        VALUES ($1, $2, $3, $4, $5)`,
-      [playerId, 'daily_spin', rewardSC, 'SC', 'Daily Spin Wheel Reward']
-    );
-
-    await query(
-      `INSERT INTO wallet_transactions (player_id, transaction_type, amount, currency, description)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [playerId, 'daily_spin', rewardGC, 'GC', 'Daily Spin Wheel Reward']
+      [playerId, 'daily_spin', rewardSC, rewardGC, 'Daily Spin Wheel Reward']
     );
 
     console.log(`[Daily Spin Wheel] Player ${playerId} won SC: ${rewardSC}, GC: ${rewardGC}`);
