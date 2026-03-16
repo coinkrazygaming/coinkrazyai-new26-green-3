@@ -126,10 +126,6 @@ export const auth = {
     return apiCall<{ success: boolean; data: PlayerProfile }>('/auth/profile');
   },
 
-  getAdminProfile: async () => {
-    return apiCall<{ success: boolean; data: PlayerProfile }>('/auth/admin/profile');
-  },
-
   updateProfile: async (updates: Partial<PlayerProfile>) => {
     return apiCall<{ success: boolean; data: PlayerProfile }>('/auth/profile', {
       method: 'PUT',

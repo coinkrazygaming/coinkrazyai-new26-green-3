@@ -31,7 +31,6 @@ import {
   handleGetProfile,
   handleUpdateProfile,
   handleLogout,
-  handleAdminLogout,
   handleAdminLogin,
   handleDebugCheckUsers,
   handleDebugReseedUsers
@@ -671,7 +670,6 @@ export function createServer() {
   app.get("/api/auth/profile", verifyPlayerOrAdmin, handleGetProfile);
   app.put("/api/auth/profile", verifyPlayerOrAdmin, validate(updateProfileSchema), handleUpdateProfile);
   app.post("/api/auth/logout", verifyPlayerOrAdmin, handleLogout);
-  app.post("/api/auth/admin/logout", verifyAdmin, handleAdminLogout);
   app.get("/api/auth/debug/check-users", handleDebugCheckUsers);
   app.post("/api/auth/debug/reseed-users", handleDebugReseedUsers);
 

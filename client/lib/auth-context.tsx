@@ -63,30 +63,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Try to get player profile first
+        // Get profile - works for both player and admin tokens
         const response = await auth.getProfile();
         setUser(response.data);
         setIsAdmin(response.data.isAdmin || response.data.role === 'admin');
         console.log('[AuthContext] ✓ User authenticated on mount:', response.data.username);
       } catch (error: any) {
-        // Not logged in or token invalid - check if admin-only account
+        // Not logged in or token invalid
         if (error.status === 401) {
-          console.debug('[AuthContext] No player session found, checking for admin session...');
-
-          // Try admin profile endpoint for admin-only accounts
-          try {
-            const adminResponse = await auth.getAdminProfile();
-            setUser(adminResponse.data);
-            setIsAdmin(true);
-            console.log('[AuthContext] ✓ Admin authenticated on mount');
-          } catch (adminError: any) {
-            // Not admin either
-            if (adminError.status === 401) {
-              console.debug('[AuthContext] No admin session found (user not logged in)');
-            } else {
-              console.error('[AuthContext] Admin auth check failed:', adminError.message || adminError);
-            }
-          }
+          console.debug('[AuthContext] No session found (user not logged in)');
         } else {
           console.error('[AuthContext] Auth check failed:', error.message || error);
         }
