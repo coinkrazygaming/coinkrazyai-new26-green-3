@@ -223,3 +223,89 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
     next();
   }
 };
+
+// Flexible auth middleware - accepts either player or admin token
+export const verifyPlayerOrAdmin = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    // Try player token first
+    let tokenFromHeader = req.headers.authorization?.replace('Bearer ', '');
+    let tokenFromCookie = req.cookies?.auth_token || req.cookies?.admin_token;
+    let token = tokenFromHeader || tokenFromCookie;
+
+    if (!token) {
+      console.debug(`[Auth] /api${req.path} - No token found`);
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required'
+      });
+    }
+
+    // Check blacklist
+    let blacklisted;
+    try {
+      blacklisted = await query('SELECT id FROM token_blacklist WHERE token = $1', [token]);
+    } catch (err) {
+      console.error(`[Auth] Error checking token blacklist`);
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication service error'
+      });
+    }
+
+    if (blacklisted.rows.length > 0) {
+      console.debug(`[Auth] /api${req.path} - Blacklisted token rejected`);
+      return res.status(401).json({
+        success: false,
+        error: 'Token has been revoked'
+      });
+    }
+
+    let decoded;
+    try {
+      decoded = AuthService.verifyJWT(token);
+    } catch (err) {
+      console.debug(`[Auth] /api${req.path} - JWT verification failed`);
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid or expired token'
+      });
+    }
+
+    if (!decoded) {
+      console.debug(`[Auth] /api${req.path} - Token verification returned null`);
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid or expired token'
+      });
+    }
+
+    // Accept both player and admin roles
+    if (decoded.role !== 'player' && decoded.role !== 'admin') {
+      console.debug(`[Auth] /api${req.path} - Invalid role: ${decoded.role}`);
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid token'
+      });
+    }
+
+    console.debug(`[Auth] ✓ Authenticated (ID: ${decoded.playerId}, role: ${decoded.role})`);
+
+    // Attach user to request
+    req.user = {
+      id: decoded.playerId,
+      playerId: decoded.playerId,
+      username: decoded.username,
+      email: decoded.email,
+      role: decoded.role,
+      token
+    };
+
+    next();
+  } catch (error) {
+    console.error(`[Auth] Unexpected error during authentication - ${error instanceof Error ? error.message : 'Unknown error'}`);
+    res.status(401).json({
+      success: false,
+      error: 'Authentication failed'
+    });
+  }
+};

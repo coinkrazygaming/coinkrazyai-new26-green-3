@@ -298,35 +298,6 @@ export const handleAdminLogout: RequestHandler = asyncHandler(async (req, res) =
   });
 });
 
-// Get admin profile (for admin-only accounts or sitewide admins)
-export const handleGetAdminProfile: RequestHandler = asyncHandler(async (req, res) => {
-  if (!req.user) {
-    return res.status(401).json({
-      success: false,
-      error: 'Not authenticated'
-    });
-  }
-
-  // For admins, return a minimal admin profile
-  res.json({
-    success: true,
-    data: {
-      id: 0,
-      username: 'admin',
-      name: 'Administrator',
-      email: req.user.email,
-      gc_balance: 0,
-      sc_balance: 0,
-      status: 'active',
-      kyc_level: 'admin',
-      kyc_verified: true,
-      created_at: new Date().toISOString(),
-      last_login: new Date().toISOString(),
-      role: 'admin',
-      isAdmin: true
-    }
-  });
-});
 
 // DEBUG: Check if test users exist (for debugging login issues)
 export const handleDebugCheckUsers: RequestHandler = asyncHandler(async (req, res) => {

@@ -29,7 +29,6 @@ import {
   handleRegister,
   handleLogin,
   handleGetProfile,
-  handleGetAdminProfile,
   handleUpdateProfile,
   handleLogout,
   handleAdminLogout,
@@ -37,7 +36,7 @@ import {
   handleDebugCheckUsers,
   handleDebugReseedUsers
 } from "./routes/auth";
-import { verifyPlayer, verifyAdmin } from "./middleware/auth";
+import { verifyPlayer, verifyAdmin, verifyPlayerOrAdmin } from "./middleware/auth";
 import { validate } from "./middleware/validate";
 import {
   registerSchema,
@@ -669,10 +668,9 @@ export function createServer() {
   app.post("/api/auth/register", authLimiter, validate(registerSchema), handleRegister);
   app.post("/api/auth/login", authLimiter, validate(loginSchema), handleLogin);
   app.post("/api/auth/admin/login", authLimiter, validate(adminLoginSchema), handleAdminLogin);
-  app.get("/api/auth/profile", verifyPlayer, handleGetProfile);
-  app.get("/api/auth/admin/profile", verifyAdmin, handleGetAdminProfile);
-  app.put("/api/auth/profile", verifyPlayer, validate(updateProfileSchema), handleUpdateProfile);
-  app.post("/api/auth/logout", verifyPlayer, handleLogout);
+  app.get("/api/auth/profile", verifyPlayerOrAdmin, handleGetProfile);
+  app.put("/api/auth/profile", verifyPlayerOrAdmin, validate(updateProfileSchema), handleUpdateProfile);
+  app.post("/api/auth/logout", verifyPlayerOrAdmin, handleLogout);
   app.post("/api/auth/admin/logout", verifyAdmin, handleAdminLogout);
   app.get("/api/auth/debug/check-users", handleDebugCheckUsers);
   app.post("/api/auth/debug/reseed-users", handleDebugReseedUsers);
