@@ -33,19 +33,38 @@ const Admin = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('dashboard');
+  const [adminVerified, setAdminVerified] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && !isAdmin) {
-      navigate('/');
-      return;
-    }
+    const verifyAdmin = async () => {
+      // If isAdmin is already true, no need to verify
+      if (isAdmin) {
+        setAdminVerified(true);
+        setIsLoading(false);
+        return;
+      }
 
-    if (isAdmin) {
-      setIsLoading(false);
+      // Try to verify admin status by making an admin API call
+      // If it succeeds, we know they have a valid admin token
+      try {
+        await adminV2.dashboard.getStats();
+        setAdminVerified(true);
+        setIsLoading(false);
+      } catch (error: any) {
+        // Not admin or no valid admin token
+        if (!authLoading) {
+          console.log('[Admin] Not authorized, redirecting to home');
+          navigate('/');
+        }
+      }
+    };
+
+    if (!authLoading) {
+      verifyAdmin();
     }
   }, [isAdmin, authLoading, navigate]);
 
-  if (authLoading || isLoading) {
+  if (authLoading || isLoading || !adminVerified) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />

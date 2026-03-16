@@ -71,6 +71,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Not logged in or token invalid - this is expected behavior
         if (error.status === 401) {
           console.debug('[AuthContext] No session found on mount (user not logged in)');
+          // This could be an admin-only account with admin_token but no auth_token
+          // The admin page will handle this - we'll skip setting user here
         } else {
           console.error('[AuthContext] Auth check failed:', error.message || error);
         }
@@ -118,16 +120,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await auth.adminLogin(email, password);
       setIsAdmin(true);
 
-      // If sitewide admin is recognized (has player profile), set user profile too
+      // Set user profile if the admin has an associated player account
       if (response.playerProfile) {
         setUser(response.playerProfile);
+        console.log('[AuthContext] ✓ Admin logged in with player profile:', response.playerProfile.username);
       } else {
-        // Just call getProfile to refresh state
-        try {
-          const profileResponse = await auth.getProfile();
-          setUser(profileResponse.data);
-          setIsAdmin(true);
-} catch (e) { console.error('Failed to refresh profile after admin login:', e); }
+        // Admin-only account (no player profile)
+        // Create a minimal user object for the admin
+        setUser({
+          id: 0,
+          username: 'admin',
+          name: 'Administrator',
+          email: email,
+          gc_balance: 0,
+          sc_balance: 0,
+          status: 'active',
+          kyc_level: 'admin',
+          kyc_verified: true,
+          created_at: new Date().toISOString(),
+          last_login: new Date().toISOString(),
+          role: 'admin',
+          isAdmin: true
+        });
+        console.log('[AuthContext] ✓ Admin logged in (admin-only account)');
       }
 
       setIsLoading(false);
