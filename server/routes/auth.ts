@@ -83,6 +83,52 @@ export const handleLogin: RequestHandler = asyncHandler(async (req, res) => {
   });
 });
 
+// Verify admin session (check if admin_token is valid)
+export const handleVerifyAdminSession: RequestHandler = asyncHandler(async (req, res) => {
+  try {
+    // Get admin token from cookie
+    const adminToken = req.cookies?.admin_token;
+
+    if (!adminToken) {
+      return res.status(401).json({
+        success: false,
+        error: 'No admin session'
+      });
+    }
+
+    // Verify the token
+    const decoded = AuthService.verifyJWT(adminToken);
+    if (!decoded || decoded.role !== 'admin') {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid admin token'
+      });
+    }
+
+    // Check if token is blacklisted
+    const blacklisted = await query('SELECT id FROM token_blacklist WHERE token = $1', [adminToken]);
+    if (blacklisted.rows.length > 0) {
+      return res.status(401).json({
+        success: false,
+        error: 'Admin token revoked'
+      });
+    }
+
+    // Token is valid
+    res.json({
+      success: true,
+      isAdmin: true,
+      decoded
+    });
+  } catch (error: any) {
+    console.debug('[Auth] Admin session verification failed:', error.message);
+    res.status(401).json({
+      success: false,
+      error: 'Invalid or expired admin session'
+    });
+  }
+});
+
 // Admin login - with sitewide admin recognition
 export const handleAdminLogin: RequestHandler = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
