@@ -29,8 +29,10 @@ import {
   handleRegister,
   handleLogin,
   handleGetProfile,
+  handleGetAdminProfile,
   handleUpdateProfile,
   handleLogout,
+  handleAdminLogout,
   handleAdminLogin,
   handleDebugCheckUsers,
   handleDebugReseedUsers
@@ -668,8 +670,10 @@ export function createServer() {
   app.post("/api/auth/login", authLimiter, validate(loginSchema), handleLogin);
   app.post("/api/auth/admin/login", authLimiter, validate(adminLoginSchema), handleAdminLogin);
   app.get("/api/auth/profile", verifyPlayer, handleGetProfile);
+  app.get("/api/auth/admin/profile", verifyAdmin, handleGetAdminProfile);
   app.put("/api/auth/profile", verifyPlayer, validate(updateProfileSchema), handleUpdateProfile);
   app.post("/api/auth/logout", verifyPlayer, handleLogout);
+  app.post("/api/auth/admin/logout", verifyAdmin, handleAdminLogout);
   app.get("/api/auth/debug/check-users", handleDebugCheckUsers);
   app.post("/api/auth/debug/reseed-users", handleDebugReseedUsers);
 
