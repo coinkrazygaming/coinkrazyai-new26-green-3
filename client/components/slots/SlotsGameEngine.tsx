@@ -75,7 +75,7 @@ const SlotsGameEngine: React.FC<SlotsGameEngineProps> = ({ gameId, gameName = 'M
     return newReels;
   };
 
-  const checkWin = (reels: string[][]): number => {
+  const checkWin = (reels: string[][], currentBet: number): number => {
     let winnings = 0;
 
     // Check middle row
@@ -84,20 +84,20 @@ const SlotsGameEngine: React.FC<SlotsGameEngineProps> = ({ gameId, gameName = 'M
       const symbol = middleRow[0];
       const symbolIndex = SYMBOLS.indexOf(symbol);
       const multiplier = [2, 2.5, 3, 3.5, 4, 5, 7.5, 10][symbolIndex];
-      winnings += gameState.currentBet * multiplier * 100;
+      winnings += currentBet * multiplier;
     }
 
     // Check diagonals
     if (reels[0][0] === reels[1][1] && reels[1][1] === reels[2][2]) {
       const symbolIndex = SYMBOLS.indexOf(reels[1][1]);
       const multiplier = [2, 2.5, 3, 3.5, 4, 5, 7.5, 10][symbolIndex];
-      winnings += gameState.currentBet * multiplier * 50;
+      winnings += currentBet * multiplier * 0.5;
     }
 
     if (reels[0][2] === reels[1][1] && reels[1][1] === reels[2][0]) {
       const symbolIndex = SYMBOLS.indexOf(reels[1][1]);
       const multiplier = [2, 2.5, 3, 3.5, 4, 5, 7.5, 10][symbolIndex];
-      winnings += gameState.currentBet * multiplier * 50;
+      winnings += currentBet * multiplier * 0.5;
     }
 
     return Math.min(winnings, 10); // Max 10 SC win for compliance
@@ -135,8 +135,8 @@ const SlotsGameEngine: React.FC<SlotsGameEngineProps> = ({ gameId, gameName = 'M
       reels: finalReels,
     }));
 
-    const winnings = checkWin(finalReels);
-    const newBalance = gameState.balance + winnings;
+    const currentBetValue = gameState.currentBet;
+    const winnings = checkWin(finalReels, currentBetValue);
 
     if (winnings > 0) {
       toast.success(`🎉 Big Win! ${winnings.toFixed(2)} SC!`);
@@ -153,7 +153,7 @@ const SlotsGameEngine: React.FC<SlotsGameEngineProps> = ({ gameId, gameName = 'M
 
       // Record spin result
       const spinResult: SpinResult = {
-        bet: gameState.currentBet,
+        bet: currentBetValue,
         winnings,
         symbols: finalReels.map(r => r[1]).join(''),
         timestamp: Date.now(),
@@ -164,7 +164,7 @@ const SlotsGameEngine: React.FC<SlotsGameEngineProps> = ({ gameId, gameName = 'M
         spinning: false,
         lastWinnings: winnings,
         totalWinnings: prev.totalWinnings + winnings,
-        balance: newBalance,
+        balance: prev.balance + winnings,
         spinHistory: [spinResult, ...prev.spinHistory].slice(0, 20),
       }));
 
@@ -175,7 +175,7 @@ const SlotsGameEngine: React.FC<SlotsGameEngineProps> = ({ gameId, gameName = 'M
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             gameId,
-            bet: gameState.currentBet,
+            bet: currentBetValue,
             winnings,
             symbols: finalReels.map(r => r[1]).join(''),
           }),
@@ -189,7 +189,6 @@ const SlotsGameEngine: React.FC<SlotsGameEngineProps> = ({ gameId, gameName = 'M
         ...prev,
         spinning: false,
         lastWinnings: 0,
-        balance: newBalance,
       }));
     }
   };

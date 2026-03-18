@@ -333,6 +333,30 @@ const AppRoutes = () => (
         </Layout>
       }
     />
+    <Route
+      path="/blackjack"
+      element={
+        <Layout>
+          <BlackjackGame />
+        </Layout>
+      }
+    />
+    <Route
+      path="/roulette"
+      element={
+        <Layout>
+          <RouletteGame />
+        </Layout>
+      }
+    />
+    <Route
+      path="/baccarat"
+      element={
+        <Layout>
+          <BaccaratGame />
+        </Layout>
+      }
+    />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
