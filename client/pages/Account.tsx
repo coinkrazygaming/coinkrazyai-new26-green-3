@@ -162,31 +162,40 @@ const Account = () => {
 
   const handlePreferencesUpdate = async () => {
     try {
-      toast.promise(
-        Promise.resolve(),
-        {
-          success: 'Notification preferences updated',
-          error: 'Failed to update preferences',
-          loading: 'Updating...'
-        }
-      );
-    } catch (err) {
-      toast.error('Failed to update preferences');
+      setIsUpdating(true);
+      const response = await auth.updateProfile({ preferences });
+
+      if (response.success) {
+        toast.success('Notification preferences updated');
+      } else {
+        toast.error('Failed to update preferences');
+      }
+    } catch (err: any) {
+      const message = err.message || 'Failed to update preferences';
+      toast.error(message);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
   const handleSecurityUpdate = async () => {
     try {
-      toast.promise(
-        Promise.resolve(),
-        {
-          success: 'Security settings updated',
-          error: 'Failed to update settings',
-          loading: 'Updating...'
-        }
-      );
-    } catch (err) {
-      toast.error('Failed to update security settings');
+      setIsUpdating(true);
+      const response = await auth.updateProfile({
+        privacySettings,
+        securitySettings
+      });
+
+      if (response.success) {
+        toast.success('Settings updated successfully');
+      } else {
+        toast.error('Failed to update settings');
+      }
+    } catch (err: any) {
+      const message = err.message || 'Failed to update settings';
+      toast.error(message);
+    } finally {
+      setIsUpdating(false);
     }
   };
 

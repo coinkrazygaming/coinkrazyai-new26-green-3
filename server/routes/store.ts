@@ -469,9 +469,56 @@ export const handleSquareWebhook: RequestHandler = async (req, res) => {
           const payment = event.data?.object?.payment;
           if (payment?.status === 'COMPLETED') {
             // Process successful payment
-            const orderId = payment.metadata?.order_id || payment.id;
-            console.log('[Store] Square payment completed:', orderId);
-            // TODO: Update player balance based on payment metadata
+            const paymentId = payment.id;
+            const playerId = parseInt(payment.metadata?.playerId || '0');
+            const packId = parseInt(payment.metadata?.packId || '0');
+            const gcAmount = parseFloat(payment.metadata?.goldCoins || '0');
+            const scAmount = parseFloat(payment.metadata?.sweepsCoins || '0');
+            const amountUsd = (payment.amount_money?.amount || 0) / 100;
+
+            console.log('[Store] Square payment completed:', {
+              paymentId,
+              playerId,
+              packId,
+              gcAmount,
+              scAmount,
+              amountUsd
+            });
+
+            if (playerId && packId && gcAmount > 0) {
+              try {
+                const { recordPurchase, recordWalletTransaction } = await import('../db/queries');
+                const { NotificationService } = await import('../services/notification-service');
+
+                // Record purchase in database
+                await recordPurchase(playerId, packId, amountUsd, gcAmount, scAmount, paymentId);
+                console.log('[Store] Purchase recorded for player:', playerId);
+
+                // Update player wallet
+                await recordWalletTransaction(
+                  playerId,
+                  'coin_purchase',
+                  gcAmount,
+                  scAmount,
+                  `Purchased ${packId} for $${amountUsd.toFixed(2)}`
+                );
+                console.log('[Store] Wallet updated for player:', playerId);
+
+                // Send notification
+                try {
+                  await NotificationService.sendNotification(
+                    playerId,
+                    'purchase_complete',
+                    'Purchase Complete',
+                    `You successfully purchased ${gcAmount.toLocaleString()} Gold Coins!`
+                  );
+                } catch (notifError) {
+                  console.warn('[Store] Failed to send notification:', notifError);
+                }
+              } catch (processError) {
+                console.error('[Store] Error processing Square payment:', processError);
+              }
+            }
           }
           break;
         }
@@ -479,8 +526,67 @@ export const handleSquareWebhook: RequestHandler = async (req, res) => {
       case 'refund.created':
         {
           const refund = event.data?.object?.refund;
-          console.log('[Store] Square refund processed:', refund?.id);
-          // TODO: Handle refund processing
+          const paymentId = refund?.payment_id;
+          const refundId = refund?.id;
+          const amountUsd = (refund?.amount_money?.amount || 0) / 100;
+
+          console.log('[Store] Square refund processed:', {
+            refundId,
+            paymentId,
+            amountUsd
+          });
+
+          if (paymentId && amountUsd > 0) {
+            try {
+              const { query: dbQuery } = await import('../db/connection');
+              const { recordWalletTransaction } = await import('../db/queries');
+              const { NotificationService } = await import('../services/notification-service');
+
+              // Find the purchase associated with this payment
+              const purchaseResult = await dbQuery(
+                'SELECT * FROM purchases WHERE payment_id = $1',
+                [paymentId]
+              );
+
+              if (purchaseResult.rows.length > 0) {
+                const purchase = purchaseResult.rows[0];
+                const playerId = purchase.player_id;
+
+                // Reverse the wallet transaction
+                await recordWalletTransaction(
+                  playerId,
+                  'refund',
+                  -purchase.gold_coins,
+                  -purchase.sweeps_coins,
+                  `Refund for payment ${paymentId}`
+                );
+                console.log('[Store] Wallet reversed for refund, player:', playerId);
+
+                // Update purchase status
+                await dbQuery(
+                  'UPDATE purchases SET status = $1, refund_id = $2 WHERE id = $3',
+                  ['Refunded', refundId, purchase.id]
+                );
+                console.log('[Store] Purchase marked as refunded:', purchase.id);
+
+                // Send refund notification
+                try {
+                  await NotificationService.sendNotification(
+                    playerId,
+                    'refund_processed',
+                    'Refund Processed',
+                    `Your refund of $${amountUsd.toFixed(2)} has been processed. Coins have been reversed.`
+                  );
+                } catch (notifError) {
+                  console.warn('[Store] Failed to send refund notification:', notifError);
+                }
+              } else {
+                console.warn('[Store] Purchase not found for payment:', paymentId);
+              }
+            } catch (refundError) {
+              console.error('[Store] Error processing refund:', refundError);
+            }
+          }
           break;
         }
 

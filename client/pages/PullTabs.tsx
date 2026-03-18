@@ -104,9 +104,7 @@ export default function PullTabs() {
   const loadMyTickets = async () => {
     try {
       setIsLoadingTickets(true);
-      const response = await apiCall<{ success: boolean; data?: any[] }>('/pull-tabs', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
-      });
+      const response = await apiCall<{ success: boolean; data?: any[] }>('/pull-tabs');
       if (response.success) {
         setMyTickets(response.data ?? []);
       }
@@ -120,9 +118,7 @@ export default function PullTabs() {
   const loadTransactions = async () => {
     try {
       setIsLoadingTransactions(true);
-      const response = await apiCall<{ success: boolean; data?: any[] }>('/pull-tabs/history/transactions?limit=50', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
-      });
+      const response = await apiCall<{ success: boolean; data?: any[] }>('/pull-tabs/history/transactions?limit=50');
       if (response.success) {
         setTransactions(response.data ?? []);
       }
@@ -143,7 +139,6 @@ export default function PullTabs() {
       setPurchasingDesignId(designId);
       const response = await apiCall<{ success: boolean; data?: any; error?: string }>('/pull-tabs/purchase', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
         body: JSON.stringify({ designId }),
       });
 

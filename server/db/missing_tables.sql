@@ -463,3 +463,16 @@ CREATE TABLE IF NOT EXISTS ai_rate_limits (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(player_id, endpoint)
 );
+
+-- 13. Daily Spin Wheel Rewards
+CREATE TABLE IF NOT EXISTS daily_spin_wheel_rewards (
+    id SERIAL PRIMARY KEY,
+    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    reward_sc DECIMAL(10, 2) NOT NULL,
+    reward_gc DECIMAL(10, 2) NOT NULL,
+    claimed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    next_available_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_daily_spin_player_claimed ON daily_spin_wheel_rewards(player_id, claimed_at);

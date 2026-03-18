@@ -41,7 +41,6 @@ const SlotsGame: React.FC<{ gameId?: string | number; gameName?: string }> = ({
   const [reels, setReels] = useState<string[][]>(
     Array(NUM_REELS).fill(null).map(() => Array(NUM_ROWS).fill('🍎'))
   );
-  const [spinning, setSpinning] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
   const [betAmount, setBetAmount] = useState(1);
   const [totalBet, setTotalBet] = useState(NUM_PAYLINES);
@@ -49,7 +48,6 @@ const SlotsGame: React.FC<{ gameId?: string | number; gameName?: string }> = ({
   const [lastResult, setLastResult] = useState<SpinResult | null>(null);
   const [winningLines, setWinningLines] = useState<PaylineWin[]>([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [animatingReels, setAnimatingReels] = useState<number[]>([]);
   const [balance, setBalance] = useState(walletData?.sweepsCoins ?? 0);
 
   // Update balance when wallet changes
@@ -139,14 +137,13 @@ const SlotsGame: React.FC<{ gameId?: string | number; gameName?: string }> = ({
 
   // Spin the reels
   const performSpin = useCallback(async () => {
-    if (spinning || isSpinning) return;
+    if (isSpinning) return;
     if (balance < totalBet) {
       toast.error('Insufficient balance');
       return;
     }
 
     try {
-      setSpinning(true);
       setIsSpinning(true);
       setWinAmount(0);
       setWinningLines([]);
@@ -154,7 +151,6 @@ const SlotsGame: React.FC<{ gameId?: string | number; gameName?: string }> = ({
 
       // Animate reels spinning
       const spinDuration = 2500;
-      setAnimatingReels(Array.from({ length: NUM_REELS }, (_, i) => i));
 
       // Generate initial random reels for animation
       const animationFrames: string[][][] = [];
@@ -255,11 +251,9 @@ const SlotsGame: React.FC<{ gameId?: string | number; gameName?: string }> = ({
       console.error('Spin failed:', error);
       toast.error('Spin failed. Please try again.');
     } finally {
-      setSpinning(false);
       setIsSpinning(false);
-      setAnimatingReels([]);
     }
-  }, [balance, totalBet, soundEnabled, gameId, spinning, isSpinning, refreshWallet]);
+  }, [balance, totalBet, soundEnabled, gameId, isSpinning, refreshWallet]);
 
   // Simple win sound
   const playWinSound = () => {
@@ -306,7 +300,7 @@ const SlotsGame: React.FC<{ gameId?: string | number; gameName?: string }> = ({
                   key={reelIndex}
                   className={cn(
                     'relative bg-gradient-to-b from-slate-800 to-slate-900 rounded-xl border-2 border-primary/30 p-2 transition-all duration-300',
-                    animatingReels.includes(reelIndex) && 'animate-pulse border-primary'
+                    isSpinning && 'animate-pulse border-primary'
                   )}
                 >
                   <div className="space-y-1">

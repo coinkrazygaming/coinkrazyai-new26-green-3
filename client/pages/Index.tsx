@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
 import { GameLauncher } from '@/components/casino/GameLauncher';
 import { GamePlayerModal } from '@/components/slots/GamePlayerModal';
 import { BrandedGameModal } from '@/components/casino/BrandedGameModal';
+import { SpinWheelModal } from '@/components/SpinWheelModal';
+import { useSpinWheel } from '@/hooks/use-spin-wheel';
 
 interface Game {
   id: number;
@@ -44,6 +46,20 @@ const Index = () => {
     aiStatus: '...',
     totalPlayers: 0
   });
+
+  // Spin Wheel Hook
+  const {
+    wheelData,
+    isLoading: isLoadingWheel,
+    isSpinning,
+    showModal: showSpinWheelModal,
+    setShowModal: setShowSpinWheelModal,
+    lastReward,
+    claimReward,
+    timeUntilNextSpin,
+    formatTimeRemaining,
+    fetchWheelStatus
+  } = useSpinWheel();
 
   // Fetch featured games and stats from backend
   useEffect(() => {
@@ -219,12 +235,17 @@ const Index = () => {
 
       {/* Promotions Section */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-gradient-to-br from-purple-600 to-blue-700 rounded-3xl p-8 text-white relative overflow-hidden group hover:scale-[1.02] transition-all cursor-pointer">
+        <div className="bg-gradient-to-br from-purple-600 to-blue-700 rounded-3xl p-8 text-white relative overflow-hidden group hover:scale-[1.02] transition-all cursor-pointer" onClick={() => setShowSpinWheelModal(true)}>
           <div className="relative z-10 space-y-4">
-            <Gift className="w-10 h-10 text-white/50" />
-            <h3 className="text-2xl font-black italic uppercase leading-none">FREE DAILY <br /> SWEWPS COINS</h3>
-            <p className="text-white/70 font-bold uppercase text-xs">Log in every 24 hours to claim your gift!</p>
-            <Button size="sm" className="bg-white text-blue-700 font-black rounded-xl">CLAIM NOW</Button>
+            <Sparkles className="w-10 h-10 text-white/50 animate-spin" />
+            <h3 className="text-2xl font-black italic uppercase leading-none">SPIN WHEEL <br /> DAILY REWARDS</h3>
+            <p className="text-white/70 font-bold uppercase text-xs">Spin once per 24 hours to win SC & GC!</p>
+            <Button size="sm" className="bg-white text-blue-700 font-black rounded-xl" onClick={(e) => {
+              e.stopPropagation();
+              setShowSpinWheelModal(true);
+            }}>
+              {wheelData?.canSpin ? '🎉 SPIN NOW' : '⏱ COME BACK'}
+            </Button>
           </div>
           <div className="absolute -right-10 -bottom-10 opacity-20 transform rotate-12 group-hover:rotate-0 transition-transform duration-500">
             <Coins className="w-40 h-40" />
@@ -408,10 +429,32 @@ const Index = () => {
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-black italic uppercase tracking-tight">Mini Games</h2>
-            <Button variant="outline" size="sm" className="font-black italic text-xs uppercase border-2">PLAY MINI</Button>
+            <h2 className="text-3xl font-black italic uppercase tracking-tight">Table Games</h2>
+            <Button variant="outline" size="sm" className="font-black italic text-xs uppercase border-2">PLAY NOW</Button>
           </div>
           <div className="grid grid-cols-2 gap-4">
+            <Link to="/roulette" className="block">
+              <Card className="bg-slate-900 border-2 border-white/5 overflow-hidden group hover:border-yellow-500/30 transition-all">
+                <div className="h-32 bg-gradient-to-br from-red-600 to-yellow-500 flex items-center justify-center">
+                  <div className="text-4xl font-black">🎡</div>
+                </div>
+                <CardContent className="p-4">
+                  <h4 className="font-black italic uppercase text-sm">Roulette</h4>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase">Spin to Win</p>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link to="/blackjack" className="block">
+              <Card className="bg-slate-900 border-2 border-white/5 overflow-hidden group hover:border-yellow-500/30 transition-all">
+                <div className="h-32 bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center">
+                  <div className="text-4xl font-black">♠️</div>
+                </div>
+                <CardContent className="p-4">
+                  <h4 className="font-black italic uppercase text-sm">Blackjack</h4>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase">21 or Bust</p>
+                </CardContent>
+              </Card>
+            </Link>
             <Link to="/dice" className="block">
               <Card className="bg-slate-900 border-2 border-white/5 overflow-hidden group hover:border-yellow-500/30 transition-all">
                 <div className="h-32 bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
@@ -425,7 +468,7 @@ const Index = () => {
             </Link>
             <Link to="/plinko" className="block">
               <Card className="bg-slate-900 border-2 border-white/5 overflow-hidden group hover:border-yellow-500/30 transition-all">
-                <div className="h-32 bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center">
+                <div className="h-32 bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
                   <Zap className="w-12 h-12 text-white animate-pulse" />
                 </div>
                 <CardContent className="p-4">
@@ -504,6 +547,21 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      {/* Spin Wheel Modal */}
+      {wheelData && (
+        <SpinWheelModal
+          isOpen={showSpinWheelModal}
+          onClose={() => setShowSpinWheelModal(false)}
+          isSpinning={isSpinning}
+          canSpin={wheelData.canSpin}
+          onSpin={claimReward}
+          lastReward={lastReward}
+          timeUntilNextSpin={timeUntilNextSpin}
+          formatTime={formatTimeRemaining}
+          totalSpins={wheelData.totalSpins}
+        />
+      )}
     </div>
   );
 };

@@ -118,6 +118,10 @@ export const auth = {
     return apiCall<any>('/auth/logout', { method: 'POST' });
   },
 
+  adminLogout: async () => {
+    return apiCall<any>('/auth/admin/logout', { method: 'POST' });
+  },
+
   getProfile: async () => {
     return apiCall<{ success: boolean; data: PlayerProfile }>('/auth/profile');
   },

@@ -73,7 +73,6 @@ const CoinKrazyThunder = () => {
   const [winAmount, setWinAmount] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [gameContainer, setGameContainer] = useState<HTMLDivElement | null>(null);
   const [showHelpModal, setShowHelpModal] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -245,12 +244,6 @@ const CoinKrazyThunder = () => {
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-600 rounded-full blur-3xl"></div>
       </div>
 
-      {/* Lightning flashes */}
-      <div className="absolute inset-0 pointer-events-none" ref={setGameContainer}>
-        {gameState.isSpinning && (
-          <div className="animate-pulse absolute inset-0 bg-white opacity-10"></div>
-        )}
-      </div>
 
       {/* Header */}
       <div className="relative z-10 flex items-center justify-between p-4 border-b border-blue-500">

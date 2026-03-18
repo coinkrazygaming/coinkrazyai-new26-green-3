@@ -41,9 +41,7 @@ export const AIAgentDashboard = () => {
   const loadAgentsData = async () => {
     try {
       const response = await fetch('/api/ai/status', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        }
+        credentials: 'include'
       });
 
       if (response.ok) {

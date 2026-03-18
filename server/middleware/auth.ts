@@ -26,10 +26,10 @@ export const verifyPlayer = async (req: Request, res: Response, next: NextFuncti
     const tokenFromCookie = req.cookies?.auth_token;
     const token = tokenFromHeader || tokenFromCookie;
 
-    console.log(`[Auth] /api${req.path} - Token source: ${tokenFromHeader ? 'header' : tokenFromCookie ? 'cookie' : 'none'}`);
+    const tokenSource = tokenFromHeader ? 'header' : tokenFromCookie ? 'cookie' : 'none';
 
     if (!token) {
-      console.log(`[Auth] No token found - Authorization header: ${!!req.headers.authorization}, auth_token cookie: ${!!req.cookies?.auth_token}`);
+      console.debug(`[Auth] /api${req.path} - No token found (source: ${tokenSource})`);
       return res.status(401).json({
         success: false,
         error: 'Authentication required'
@@ -37,19 +37,38 @@ export const verifyPlayer = async (req: Request, res: Response, next: NextFuncti
     }
 
     // Check blacklist
-    const blacklisted = await query('SELECT id FROM token_blacklist WHERE token = $1', [token]);
+    let blacklisted;
+    try {
+      blacklisted = await query('SELECT id FROM token_blacklist WHERE token = $1', [token]);
+    } catch (err) {
+      console.error(`[Auth] Error checking token blacklist`);
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication service error'
+      });
+    }
+
     if (blacklisted.rows.length > 0) {
-      console.log(`[Auth] Token has been blacklisted`);
+      console.debug(`[Auth] /api${req.path} - Blacklisted token rejected`);
       return res.status(401).json({
         success: false,
         error: 'Token has been revoked'
       });
     }
 
-    const decoded = AuthService.verifyJWT(token);
+    let decoded;
+    try {
+      decoded = AuthService.verifyJWT(token);
+    } catch (err) {
+      console.debug(`[Auth] /api${req.path} - JWT verification failed`);
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid or expired token'
+      });
+    }
 
     if (!decoded) {
-      console.log(`[Auth] Token failed JWT verification`);
+      console.debug(`[Auth] /api${req.path} - Token verification returned null`);
       return res.status(401).json({
         success: false,
         error: 'Invalid or expired token'
@@ -57,14 +76,15 @@ export const verifyPlayer = async (req: Request, res: Response, next: NextFuncti
     }
 
     if (decoded.role !== 'player') {
-      console.log(`[Auth] Token has invalid role: ${decoded.role}`);
+      console.debug(`[Auth] /api${req.path} - Invalid role for player endpoint`);
       return res.status(401).json({
         success: false,
         error: 'Invalid or expired token'
       });
     }
 
-    console.log(`[Auth] ✓ Authenticated player: ${decoded.username} (ID: ${decoded.playerId})`);
+    // Log authentication success without PII (no username or email)
+    console.debug(`[Auth] ✓ Player authenticated (ID: ${decoded.playerId})`);
 
     // Attach user to request
     req.user = {
@@ -78,7 +98,7 @@ export const verifyPlayer = async (req: Request, res: Response, next: NextFuncti
 
     next();
   } catch (error) {
-    console.error(`[Auth] Unexpected error during authentication:`, error);
+    console.error(`[Auth] Unexpected error during authentication - ${error instanceof Error ? error.message : 'Unknown error'}`);
     res.status(401).json({
       success: false,
       error: 'Authentication failed'
@@ -94,10 +114,10 @@ export const verifyAdmin = async (req: Request, res: Response, next: NextFunctio
     const tokenFromCookie = req.cookies?.admin_token;
     const token = tokenFromHeader || tokenFromCookie;
 
-    console.log(`[Admin Auth] /api${req.path} - Token source: ${tokenFromHeader ? 'header' : tokenFromCookie ? 'cookie' : 'none'}`);
+    const tokenSource = tokenFromHeader ? 'header' : tokenFromCookie ? 'cookie' : 'none';
 
     if (!token) {
-      console.log(`[Admin Auth] No token found`);
+      console.debug(`[Admin Auth] /api${req.path} - No token found (source: ${tokenSource})`);
       return res.status(401).json({
         success: false,
         error: 'Admin authentication required'
@@ -105,19 +125,38 @@ export const verifyAdmin = async (req: Request, res: Response, next: NextFunctio
     }
 
     // Check blacklist
-    const blacklisted = await query('SELECT id FROM token_blacklist WHERE token = $1', [token]);
+    let blacklisted;
+    try {
+      blacklisted = await query('SELECT id FROM token_blacklist WHERE token = $1', [token]);
+    } catch (err) {
+      console.error(`[Admin Auth] Error checking token blacklist`);
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication service error'
+      });
+    }
+
     if (blacklisted.rows.length > 0) {
-      console.log(`[Admin Auth] Token has been blacklisted`);
+      console.debug(`[Admin Auth] /api${req.path} - Blacklisted token rejected`);
       return res.status(401).json({
         success: false,
         error: 'Token has been revoked'
       });
     }
 
-    const decoded = AuthService.verifyJWT(token);
+    let decoded;
+    try {
+      decoded = AuthService.verifyJWT(token);
+    } catch (err) {
+      console.debug(`[Admin Auth] /api${req.path} - JWT verification failed`);
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid or expired admin token'
+      });
+    }
 
     if (!decoded) {
-      console.log(`[Admin Auth] Token failed JWT verification`);
+      console.debug(`[Admin Auth] /api${req.path} - Token verification returned null`);
       return res.status(401).json({
         success: false,
         error: 'Invalid or expired admin token'
@@ -125,14 +164,15 @@ export const verifyAdmin = async (req: Request, res: Response, next: NextFunctio
     }
 
     if (decoded.role !== 'admin') {
-      console.log(`[Admin Auth] Token has invalid role: ${decoded.role}`);
+      console.debug(`[Admin Auth] /api${req.path} - Invalid role for admin endpoint`);
       return res.status(401).json({
         success: false,
         error: 'Invalid or expired admin token'
       });
     }
 
-    console.log(`[Admin Auth] ✓ Authenticated admin: ${decoded.username}`);
+    // Log authentication success without PII
+    console.debug(`[Admin Auth] ✓ Admin authenticated (ID: ${decoded.playerId})`);
 
     // Attach user to request
     req.user = {
@@ -146,7 +186,7 @@ export const verifyAdmin = async (req: Request, res: Response, next: NextFunctio
 
     next();
   } catch (error) {
-    console.error(`[Admin Auth] Unexpected error during authentication:`, error);
+    console.error(`[Admin Auth] Unexpected error during authentication - ${error instanceof Error ? error.message : 'Unknown error'}`);
     res.status(401).json({
       success: false,
       error: 'Admin authentication failed'
@@ -181,5 +221,91 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
   } catch (error) {
     // Continue without auth
     next();
+  }
+};
+
+// Flexible auth middleware - accepts either player or admin token
+export const verifyPlayerOrAdmin = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    // Try player token first
+    let tokenFromHeader = req.headers.authorization?.replace('Bearer ', '');
+    let tokenFromCookie = req.cookies?.auth_token || req.cookies?.admin_token;
+    let token = tokenFromHeader || tokenFromCookie;
+
+    if (!token) {
+      console.debug(`[Auth] /api${req.path} - No token found`);
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required'
+      });
+    }
+
+    // Check blacklist
+    let blacklisted;
+    try {
+      blacklisted = await query('SELECT id FROM token_blacklist WHERE token = $1', [token]);
+    } catch (err) {
+      console.error(`[Auth] Error checking token blacklist`);
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication service error'
+      });
+    }
+
+    if (blacklisted.rows.length > 0) {
+      console.debug(`[Auth] /api${req.path} - Blacklisted token rejected`);
+      return res.status(401).json({
+        success: false,
+        error: 'Token has been revoked'
+      });
+    }
+
+    let decoded;
+    try {
+      decoded = AuthService.verifyJWT(token);
+    } catch (err) {
+      console.debug(`[Auth] /api${req.path} - JWT verification failed`);
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid or expired token'
+      });
+    }
+
+    if (!decoded) {
+      console.debug(`[Auth] /api${req.path} - Token verification returned null`);
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid or expired token'
+      });
+    }
+
+    // Accept both player and admin roles
+    if (decoded.role !== 'player' && decoded.role !== 'admin') {
+      console.debug(`[Auth] /api${req.path} - Invalid role: ${decoded.role}`);
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid token'
+      });
+    }
+
+    console.debug(`[Auth] ✓ Authenticated (ID: ${decoded.playerId}, role: ${decoded.role})`);
+
+    // Attach user to request
+    req.user = {
+      id: decoded.playerId,
+      playerId: decoded.playerId,
+      username: decoded.username,
+      email: decoded.email,
+      role: decoded.role,
+      token
+    };
+
+    next();
+  } catch (error) {
+    console.error(`[Auth] Unexpected error during authentication - ${error instanceof Error ? error.message : 'Unknown error'}`);
+    res.status(401).json({
+      success: false,
+      error: 'Authentication failed'
+    });
   }
 };
