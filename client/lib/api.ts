@@ -1,6 +1,6 @@
 import { PlayerProfile, AuthResponse, StorePack, Wallet, Transaction, GameInfo, PokerTable, BingoGame, SportsEvent, Achievement, LeaderboardEntry, AIEmployee } from '@shared/api';
 
-const API_BASE = '/api';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
 
 // Helper function to make API calls (player)
 export async function apiCall<T>(
