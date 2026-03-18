@@ -26,9 +26,22 @@ export function PragmaticGamePlayer({
   useEffect(() => {
     if (!user || !iframeRef.current) return;
 
+    // Allowed origins for external game providers
+    const ALLOWED_ORIGINS = [
+      window.location.origin, // Same-origin messages
+      // Add Pragmatic provider origins (can be configurable)
+      'https://pragmaticplay.com',
+      'https://games.pragmaticplay.net',
+    ];
+
     const handleMessage = (event: MessageEvent) => {
-      // Verify origin for security
-      if (event.origin !== window.location.origin) {
+      // Verify origin for security - only accept from allowed origins or same origin
+      const isAllowedOrigin = ALLOWED_ORIGINS.some(origin =>
+        event.origin === origin ||
+        event.origin.includes('pragmatic')
+      );
+
+      if (!isAllowedOrigin && event.origin !== window.location.origin) {
         console.warn('[Pragmatic] Message from untrusted origin:', event.origin);
         return;
       }
@@ -88,7 +101,7 @@ export function PragmaticGamePlayer({
                 currency: 'SC',
               },
             },
-            window.location.origin
+            '*' // Allow postMessage to any origin (response to allowed iframe)
           );
           break;
 
@@ -116,7 +129,7 @@ export function PragmaticGamePlayer({
     const timer = setTimeout(() => {
       iframeRef.current?.contentWindow?.postMessage(
         setupMessage,
-        window.location.origin
+        '*' // Allow postMessage to external provider iframe
       );
     }, 500);
 
