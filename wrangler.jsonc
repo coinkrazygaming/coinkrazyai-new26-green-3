@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "coinkrazyai-new26-green-3",
+  "name": "playcoinkrazycom",
   "compatibility_date": "2025-09-27",
   "observability": {
     "enabled": true
