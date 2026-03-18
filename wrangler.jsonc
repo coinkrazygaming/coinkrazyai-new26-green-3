@@ -10,5 +10,11 @@
   },
   "compatibility_flags": [
     "nodejs_compat"
+  ],
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "6b15f56726574020a700da784b11d223"
+    }
   ]
 }
