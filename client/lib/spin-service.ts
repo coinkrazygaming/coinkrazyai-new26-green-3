@@ -92,7 +92,7 @@ class ResponseNormalizer {
       betAmount,
       winAmount,
       netResult: winAmount - betAmount,
-      result: winAmount > 0 ? 'win' : 'loss',
+      result: winAmount > betAmount ? 'win' : winAmount === betAmount ? 'push' : 'loss',
       balanceAfter,
       wallet: {
         goldCoins: 0,
