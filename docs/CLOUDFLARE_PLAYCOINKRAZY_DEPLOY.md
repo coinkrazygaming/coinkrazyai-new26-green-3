@@ -56,7 +56,7 @@ Build command:
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm build
+pnpm build:server
 ```
 
 Start command:
