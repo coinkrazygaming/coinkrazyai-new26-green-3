@@ -207,7 +207,7 @@ export const BetController: React.FC<BetControllerProps> = ({
                   : 'border-slate-700 bg-slate-800 hover:bg-slate-700'
               )}
             >
-              ${amount.toFixed(2)}
+              {amount.toFixed(2)} SC
             </Button>
           ))}
         </div>
