@@ -185,6 +185,6 @@ export function useGameSession(config: GameSessionConfig) {
 
     // User info
     userId: user?.id,
-    username: (user as any)?.username,
+    username: user?.username,
   };
 }
